@@ -36,6 +36,20 @@ constrained or not, variable type and size, objective and constraint
 type and size, deterministic or stochastic parameters, decision stages,
 number of players.
 
+## Solver policy
+
+The LaTeX write-up is the graded deliverable and contains no solver code.
+Every formulation must be readable and checkable without running
+anything.
+
+Code is a verification step only. Default to PuLP with the bundled CBC
+solver, which needs no license and no registration. Gurobi is optional.
+Reach for it only where CBC genuinely falls short, chiefly lazy
+constraint callbacks for DFJ subtour elimination (slides 29 to 34).
+
+Where both are written, they must agree on objective value, solution and
+shadow prices.
+
 ## Writing conventions
 
 - LaTeX preamble limited to geometry, amsmath, amssymb, amsthm so files
