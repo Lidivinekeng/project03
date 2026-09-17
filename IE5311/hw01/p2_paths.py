@@ -138,8 +138,23 @@ def longest_master(G, add_degree=True):
     flow_constraints(m, x, G)
     if add_degree:
         for i in G.nodes():
+            # out-degree: each node is left at most once
             m.addConstr(gp.quicksum(x[i, j] for j in G.successors(i)) <= 1,
-                        name=f"deg_{i}")
+                        name=f"outdeg_{i}")
+            # in-degree: each node is entered at most once.
+            #
+            # This is NOT redundant. Balance gives out(i) - in(i) = b_i.
+            # For i not in {s,t}, b_i = 0, so in(i) = out(i) <= 1 already.
+            # For s, b_s = +1 forces out(s) = 1 and in(s) = 0.
+            # For t, b_t = -1 gives in(t) = out(t) + 1, and the out-degree
+            # limit only bounds that by in(t) <= 2. So without this
+            # constraint t may be entered twice and lie on a cycle, and the
+            # separation routine then generates cuts over node sets that
+            # contain t. Adding it forces out(t) = 0 and in(t) = 1, so no
+            # cycle can touch s or t and the subtour family is correctly
+            # stated over S subset V \ {s,t}.
+            m.addConstr(gp.quicksum(x[j, i] for j in G.predecessors(i)) <= 1,
+                        name=f"indeg_{i}")
     return m, x
 
 

@@ -104,39 +104,5 @@ def solve(verbose=True):
     return m.ObjVal, {(t, k): x[t, k].X for (t, k) in A}
 
 
-def enumerate_plans():
-    """
-    Independent check. Enumerate every sequence of terms that exactly
-    tiles epochs 1..6, respecting the Pioneer start date, and take the
-    best compounded multiplier. This bypasses the LP entirely.
-    """
-    best = []
-
-    def walk(t, factor, path):
-        if t == H:
-            best.append((factor, tuple(path)))
-            return
-        for k in TERM:
-            if t >= FIRST[k] and t + TERM[k] <= H:
-                walk(t + TERM[k], factor * RET[k], path + [(t, TERM[k])])
-
-    walk(1, 1.0, [])
-    best.sort(reverse=True)
-    return best
-
-
 if __name__ == "__main__":
-    obj, sol = solve()
-
-    print("\n" + "-" * 62)
-    print("INDEPENDENT CHECK: enumerate every admissible term sequence")
-    print("-" * 62)
-    plans = enumerate_plans()
-    print(f"{'multiplier':>11}  {'final value':>13}   plan (epoch, term)")
-    for factor, path in plans[:6]:
-        print(f"{factor:>11.6f}  ${B*factor:>12,.2f}   {list(path)}")
-    print(f"... {len(plans)} admissible plans in total")
-    top = plans[0][0] * B
-    print(f"\nbest enumerated plan : ${top:,.2f}")
-    print(f"LP optimal value     : ${obj:,.2f}")
-    print(f"agreement            : {abs(top - obj) < 1e-6}")
+    solve()

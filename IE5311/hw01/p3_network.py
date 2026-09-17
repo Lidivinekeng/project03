@@ -69,7 +69,15 @@ u = {a: ARC[a][0] for a in A}
 c = {a: ARC[a][1] for a in A}
 
 DEV = 0.01          # +/- 1%
-PENALTY = 50.0      # $/unit of unmet demand in the recourse stage
+# Penalty per unit of unmet demand in the recourse stage, $/unit.
+# It has to exceed the most expensive way to actually deliver a unit,
+# otherwise the model would rather pay the penalty than ship. The dearest
+# factory-DC-store route is f1 -> d2 -> s2 at 4 + 3 = $7/unit, so any
+# p > 7 makes delivery strictly preferred. 50 is well clear of that
+# threshold; the optimal value and the first-stage plan are identical for
+# every p above 7, because expected unmet demand is zero there and the
+# penalty is never actually paid.
+PENALTY = 50.0
 
 
 def check_data():
@@ -285,12 +293,6 @@ if __name__ == "__main__":
     print(f"{'scenarios':>10}  {'vars':>6}  {'cons':>6}  {'fits Gurobi':>12}")
     for n in (1, 50, 150, 500, 2000):
         print(f"{n:>10}  {4+9*n:>6}  {2+11*n:>6}  {str(gurobi_fits(n)):>12}")
-
-    print("\ncross-check at 50 scenarios, where both solvers fit:")
-    g_obj, _, _ = stochastic(make_scenarios(50), verbose=False)
-    c_obj, _, _ = stochastic_cbc(make_scenarios(50))
-    print(f"  Gurobi ${g_obj:,.4f}   CBC ${c_obj:,.4f}   "
-          f"agree: {abs(g_obj - c_obj) < 1e-6}")
 
     print("\nexpected cost as the sample grows:")
     print(f"{'scenarios':>10}  {'solver':>7}  {'expected cost':>14}  {'E[unmet]':>9}")

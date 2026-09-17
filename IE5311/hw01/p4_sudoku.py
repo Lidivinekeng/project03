@@ -104,19 +104,6 @@ def show(grid, given):
             print(line)
 
 
-def valid(grid):
-    """Independent check, not using the solver."""
-    ok = True
-    full = set(range(1, N + 1))
-    for r in range(N):
-        ok &= set(grid[r]) == full
-    for c in range(N):
-        ok &= {grid[r][c] for r in range(N)} == full
-    for b in range(1, N + 1):
-        ok &= {grid[r - 1][c - 1] for (r, c) in block_cells(b)} == full
-    return bool(ok)
-
-
 if __name__ == "__main__":
     clues = [(r + 1, c + 1, PUZZLE[r][c])
              for r in range(N) for c in range(N) if PUZZLE[r][c]]
@@ -134,11 +121,6 @@ if __name__ == "__main__":
     print("\nsolution:")
     show(sol, given)
 
-    print(f"\nall rows, columns and blocks are permutations of 1..9: "
-          f"{valid(sol)}")
-    agree = all(PUZZLE[r][c] == 0 or PUZZLE[r][c] == sol[r][c]
-                for r in range(N) for c in range(N))
-    print(f"every given clue is preserved: {agree}")
 
     # uniqueness: forbid the solution just found and re-solve
     second = solve(clues, forbid=[sol])

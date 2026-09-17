@@ -185,46 +185,6 @@ $5{,}000 \times 1.09 = \$5{,}450$, then the Pioneer three-year
 certificate covering Years 3 to 5 returning
 $5{,}450 \times 1.15 = \$6{,}267.50$.
 
-\subsection*{1.7\quad Verification}
-
-I checked this without the LP. Because every instrument has a fixed
-term, any admissible plan is a sequence of terms that exactly tiles
-epochs 1 to 6, and its payoff is the product of the corresponding
-multipliers times $B$. Enumerating all 11 such sequences and taking the
-best gives \$6,267.50, matching the LP to the cent.
-
-\begin{center}
-\begin{tabular}{@{}rrl@{}}
-\toprule
-Multiplier & Final value & Plan (epoch, term) \\
-\midrule
-1.253500 & \$6,267.50 & (1, 2yr), (3, 3yr) \\
-1.243840 & \$6,219.20 & (1, 1yr), (2, 3yr), (5, 1yr) \\
-1.243840 & \$6,219.20 & (1, 1yr), (2, 1yr), (3, 3yr) \\
-1.235624 & \$6,178.12 & (1, 2yr), (3, 2yr), (5, 1yr) \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-\textbf{Why the winner wins.}\quad
-Compare instruments on an annualized basis: the one-year pays
-$4.000\%$ per year, the two-year pays $1.09^{1/2} - 1 = 4.403\%$, and
-the three-year pays $1.15^{1/3} - 1 = 4.769\%$. The three-year is best
-per year, so the plan wants as much time as possible inside it. Its
-3-year term and its $a_3 = 2$ availability mean it can only occupy
-epochs 2--5 or 3--6. Taking 3--6 leaves epochs 1--3 to be covered, and a
-single two-year deposit covers them better than two one-year deposits,
-since $1.09 > 1.04^2 = 1.0816$.
-
-\textbf{Shadow prices.}\quad
-The dual on the epoch-1 balance is 1.2535, exactly the compounded
-multiplier of the winning plan: one extra dollar at the start is worth
-\$1.2535 at the horizon. The duals at epochs 2 to 5 are 1.1960, 1.1500,
-1.0900 and 1.0400, each the best multiplier still reachable from that
-epoch. That the epoch-5 dual is 1.04, the one-year rate, is a useful
-consistency check, because a one-year deposit is the only instrument
-left at epoch 5.
-
 \newpage
 %=======================================================================
 \section*{Problem 2.\quad Shortest and Longest $s$--$t$ Paths \quad[40 pts]}
@@ -283,35 +243,34 @@ relaxed polytope is integral. EP1 below develops this argument in full.
 \toprule
 Inst & $|A|$ & MIP objective & LP objective & MIP time (s) & LP time (s) & B\&B nodes \\
 \midrule
-1  & 59 & 10.4591 & 10.4591 & 0.0262 & 0.0003 & 1 \\
-2  & 81 &  9.9972 &  9.9972 & 0.0261 & 0.0002 & 1 \\
-3  & 61 &  8.3409 &  8.3409 & 0.0004 & 0.0001 & 0 \\
-4  & 90 & 14.5495 & 14.5495 & 0.0123 & 0.0002 & 1 \\
-5  & 73 & 22.2423 & 22.2423 & 0.0108 & 0.0002 & 1 \\
-6  & 67 & 15.1332 & 15.1332 & 0.0014 & 0.0002 & 1 \\
-7  & 58 & 13.6582 & 13.6582 & 0.0013 & 0.0002 & 1 \\
-8  & 72 & 23.5501 & 23.5501 & 0.0012 & 0.0002 & 1 \\
+1  & 59 & 10.4591 & 10.4591 & 0.0134 & 0.0003 & 1 \\
+2  & 81 &  9.9972 &  9.9972 & 0.0130 & 0.0003 & 1 \\
+3  & 61 &  8.3409 &  8.3409 & 0.0004 & 0.0003 & 0 \\
+4  & 90 & 14.5495 & 14.5495 & 0.0018 & 0.0003 & 1 \\
+5  & 73 & 22.2423 & 22.2423 & 0.0016 & 0.0002 & 1 \\
+6  & 67 & 15.1332 & 15.1332 & 0.0016 & 0.0003 & 1 \\
+7  & 58 & 13.6582 & 13.6582 & 0.0017 & 0.0003 & 1 \\
+8  & 72 & 23.5501 & 23.5501 & 0.0017 & 0.0002 & 1 \\
 9  & 80 &  9.8539 &  9.8539 & 0.0010 & 0.0002 & 1 \\
-10 & 63 &  3.0157 &  3.0157 & 0.0015 & 0.0002 & 1 \\
+10 & 63 &  3.0157 &  3.0157 & 0.0016 & 0.0002 & 1 \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\textbf{Findings.}\quad
-The integrality gap is zero on all ten instances; the largest
-discrepancy is $3.55 \times 10^{-15}$, which is floating-point noise
-rather than a gap. No arc variable took a fractional value in any
-relaxed solution. Branch and bound explored at most one node, meaning
-the root relaxation was already integral and no branching occurred. The
-relaxation solved about 39 times faster on average, and that ratio is
-mostly fixed overhead in setting up the branch-and-bound machinery
-rather than genuine search.
+\textbf{Findings, on these ten instances.}\quad
+The integrality gap was zero on all ten; the largest discrepancy was
+$3.55 \times 10^{-15}$, floating-point noise rather than a gap. No arc
+variable took a fractional value in any relaxed solution here. Branch
+and bound explored at most one node, so the root relaxation was already
+integral and no branching occurred on these instances. The relaxation
+solved about 19 times faster in aggregate on this sample, though at
+these sizes both models finish in a few milliseconds and the ratio is
+dominated by fixed set-up overhead rather than search.
 
-The practical implication is that the binary declaration is redundant
-here. On a network of this shape you should solve the linear program and
-take the answer, and at realistic sizes the specialized algorithms
-(Dijkstra, Bellman--Ford) beat both. What the experiment confirms is a
-structural property, not a performance recommendation.
+The zero gap is the part that generalizes, and not because of the
+experiment: it follows from total unimodularity of the node-arc
+incidence matrix, argued in EP1. The timing ratio does not generalize
+and should not be read as a performance claim.
 
 \subsection*{2.5 (a)\quad Longest simple path formulation}
 
@@ -321,23 +280,59 @@ structural property, not a performance recommendation.
     & \sum_{j \in \delta^{+}(i)} x_{ij} \;-\; \sum_{j \in \delta^{-}(i)} x_{ji}
       = b_i && \forall\, i \in V \\[2pt]
     & \sum_{j \in \delta^{+}(i)} x_{ij} \;\le\; 1 && \forall\, i \in V \\[2pt]
+    & \sum_{j \in \delta^{-}(i)} x_{ji} \;\le\; 1 && \forall\, i \in V \\[2pt]
     & \sum_{(i,j) \in A(S)} x_{ij} \;\le\; |S| - 1
-      && \forall\, S \subset V \setminus \{s,t\},\ |S| \ge 2 \\[2pt]
+      && \forall\, S \subseteq V \setminus \{s,t\},\ |S| \ge 2 \\[2pt]
     & x_{ij} \in \{0,1\} && \forall\, (i,j) \in A
 \end{align}
 
+where $A(S) = \{(i,j) \in A : i \in S,\ j \in S\}$ is the set of arcs
+with both endpoints inside $S$.
+
+\textbf{Why the in-degree family is there, and why it is not redundant.}\quad
+It is tempting to drop it, on the grounds that flow conservation already
+ties the two degrees together. That reasoning holds at every node except
+one.
+
+\begin{itemize}
+\item For $i \notin \{s,t\}$: $b_i = 0$, so conservation gives
+      $\mathrm{in}(i) = \mathrm{out}(i)$, and the out-degree limit already
+      forces $\mathrm{in}(i) \le 1$. Redundant here.
+\item For $s$: $b_s = +1$ gives $\mathrm{out}(s) = \mathrm{in}(s) + 1$, and
+      with $\mathrm{out}(s) \le 1$ this forces $\mathrm{out}(s) = 1$ and
+      $\mathrm{in}(s) = 0$. Redundant here too.
+\item For $t$: $b_t = -1$ gives $\mathrm{in}(t) = \mathrm{out}(t) + 1$. The
+      out-degree limit bounds this only by $\mathrm{in}(t) \le 2$.
+      \textbf{Not redundant.} Without the in-degree constraint, $t$ may be
+      entered twice and therefore lie on a cycle.
+\end{itemize}
+
+That single gap is what makes the index set of the subtour family
+$S \subseteq V \setminus \{s,t\}$ rather than $S \subseteq V$. With the
+in-degree family present, $\mathrm{in}(t) \le 1$ combines with
+$\mathrm{in}(t) = \mathrm{out}(t) + 1$ to force $\mathrm{out}(t) = 0$, so
+$t$ has no outgoing arc and cannot sit on a cycle. Neither can $s$, which
+has no incoming arc. Every cycle therefore lies wholly inside
+$V \setminus \{s,t\}$, and the family as written covers exactly the cycles
+the separation routine can ever find.
+
+Dropping the in-degree family and keeping the restricted index set would
+be an error, and it was one: with out-degree only, the separation routine
+generated 498 cuts over node sets containing $t$ across the ten
+instances, none of which the restricted family authorizes. The written
+model and the executed model have to agree, and they now do.
+
+\textbf{What the subtour family is for.}\quad
 The out-degree restriction enforces ``visiting each location at most
-once''. The subtour elimination family is mandatory here and this is the
-substantive difference from the shortest path model. Under minimization
-a stray cycle only adds cost and disappears on its own. Under
-maximization every cycle adds weight for free, so the model without that
-family returns an $s$--$t$ path plus as many disjoint cycles as the
-degree limits permit.
+once''. The subtour family is mandatory here and this is the substantive
+difference from the shortest path model. Under minimization a stray cycle
+only adds cost and disappears on its own. Under maximization every cycle
+adds weight for free, so the model without that family returns an
+$s$--$t$ path plus as many disjoint cycles as the degree limits permit.
 
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[node distance=13mm and 15mm]
-  % the s-t path
   \node[vtx] (s)  {$s$};
   \node[vtx, right=of s]  (p1) {};
   \node[vtx, right=of p1] (p2) {};
@@ -347,13 +342,11 @@ degree limits permit.
   \draw[used] (p2)--(p3); \draw[used] (p3)--(t);
   \node[font=\scriptsize, above=1mm of p2] {a genuine $s$--$t$ path};
 
-  % cycle of length 2
   \node[vtx, below=16mm of p1] (a1) {};
   \node[vtx, right=of a1]      (a2) {};
   \draw[used] (a1) to[bend left=22] (a2);
   \draw[used] (a2) to[bend left=22] (a1);
 
-  % cycle of length 3
   \node[vtx, below=16mm of p3]        (b1) {};
   \node[vtx, right=12mm of b1]        (b2) {};
   \node[vtx, below right=9mm and 6mm of b1] (b3) {};
@@ -362,19 +355,19 @@ degree limits permit.
   \node[font=\scriptsize, below=13mm of p2]
     {disjoint cycles, free weight under maximization};
 \end{tikzpicture}
-\caption{A feasible point of the longest-path model with the subtour
-family removed. Flow conservation and the out-degree limit are both
-satisfied, yet the solution is not a path. On instance 1 this
-relaxation returns 107.1629 with three such cycles, against a true
-optimum of 98.6059.}
+\caption{A feasible point of the model with the subtour family removed.
+Conservation and both degree limits hold, yet the solution is not a
+path. Both degree limits also confine every such cycle to
+$V \setminus \{s,t\}$, which is why the family is indexed over that set.}
 \end{figure}
 
-\textbf{Measured confirmation.}\quad
-On instance 1 the master problem with no subtour constraint returns
-107.1629, selecting 19 arcs that contain three separate cycles:
-$\{11,15\}$, $\{17,18,2\}$ and $\{1,10,16,12,9,7,14\}$. The true longest
-simple path is 98.6059. The unconstrained model overstates it by 8.5570
-and its answer is not a path at all.
+\textbf{Measured on instance 1.}\quad
+The master problem with no subtour constraint returns 107.1629,
+selecting 19 arcs that contain three separate cycles: $\{11,15\}$,
+$\{17,18,2\}$ and $\{1,10,16,12,9,7,14\}$. None touches $s = 0$ or
+$t = 19$, as the argument above requires. The true longest simple path
+is 98.6059, so the unconstrained master overstates it by 8.5570 and its
+answer is not a path at all.
 
 \subsection*{2.6 (b, c)\quad Two generation strategies}
 
@@ -428,16 +421,16 @@ one tree and its accumulated bounds.}
 Inst & CG objective & Lazy objective & CG time (s) & Lazy time (s)
      & CG rounds & CG cuts & Lazy cuts \\
 \midrule
-1  &  98.6059 &  98.6059 &  0.0446 & 0.0345 &   6 &   9 &  16 \\
-2  &  96.4163 &  96.4163 &  2.6200 & 0.0651 &  59 &  66 &  87 \\
-3  &   8.3409 &   8.3409 & 10.4500 & 0.1002 & 215 & 227 & 227 \\
-4  & 135.2684 & 135.2684 &  2.5587 & 0.0740 &  53 &  65 & 116 \\
-5  & 104.4747 & 104.4747 &  1.5418 & 0.0458 &  60 &  67 &  71 \\
-6  & 121.4952 & 121.4952 &  0.2925 & 0.0289 &  28 &  29 &  33 \\
-7  &  92.6552 &  92.6552 &  0.4299 & 0.0382 &  34 &  37 &  45 \\
-8  & 120.5135 & 120.5135 &  0.0182 & 0.0067 &   6 &  10 &  10 \\
-9  &  86.8009 &  86.8009 & 20.7399 & 0.1781 & 204 & 231 & 266 \\
-10 &  87.6195 &  87.6195 &  1.8177 & 0.0520 &  74 &  77 &  80 \\
+1  &  98.6059 &  98.6059 &  0.0138 & 0.0230 &   3 &   4 &  12 \\
+2  &  96.4163 &  96.4163 &  0.0471 & 0.0143 &   7 &  10 &  17 \\
+3  &   8.3409 &   8.3409 & 12.2977 & 0.1103 & 215 & 227 & 227 \\
+4  & 135.2684 & 135.2684 &  0.0027 & 0.0018 &   1 &   0 &   0 \\
+5  & 104.4747 & 104.4747 &  0.0247 & 0.0214 &   5 &   4 &  12 \\
+6  & 121.4952 & 121.4952 &  0.0069 & 0.0030 &   2 &   1 &   1 \\
+7  &  92.6552 &  92.6552 &  0.0327 & 0.0119 &   7 &   6 &   7 \\
+8  & 120.5135 & 120.5135 &  0.0116 & 0.0036 &   4 &   7 &   8 \\
+9  &  86.8009 &  86.8009 &  0.1103 & 0.0419 &  10 &  16 &  30 \\
+10 &  87.6195 &  87.6195 &  0.0025 & 0.0030 &   1 &   0 &   4 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -445,59 +438,69 @@ Inst & CG objective & Lazy objective & CG time (s) & Lazy time (s)
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[x=1.05cm, y=1cm]
-  % gridlines, logarithmic in time
-  \foreach \y/\lab in {0.575/0.01, 1.725/0.1, 2.875/1, 4.025/10}{
+  \foreach \y/\lab in {0.000/0.001, 1.150/0.01, 2.300/0.1, 3.450/1, 4.600/10}{
     \draw[black!30] (0.4,\y) -- (10.7,\y);
     \node[left, font=\scriptsize] at (0.35,\y) {\lab\,s};
   }
   \draw[line width=0.8pt] (0.4,0) -- (10.7,0);
-  % constraint generation bars (left of each tick)
-  \foreach \x/\h in {1/1.322, 2/3.356, 3/4.047, 4/3.344, 5/3.091,
-                     6/2.261, 7/2.453, 8/0.874, 9/4.389, 10/3.173}{
+  \foreach \x/\h in {1/1.311, 2/1.924, 3/4.703, 4/0.496, 5/1.602,
+                     6/0.965, 7/1.742, 8/1.224, 9/2.349, 10/0.458}{
     \draw[fill=black] (\x-0.26,0) rectangle (\x-0.04,\h);
   }
-  % lazy bars (right of each tick)
-  \foreach \x/\h in {1/1.193, 2/1.511, 3/1.726, 4/1.575, 5/1.335,
-                     6/1.105, 7/1.244, 8/0.375, 9/2.013, 10/1.398}{
+  \foreach \x/\h in {1/1.566, 2/1.329, 3/2.349, 4/0.294, 5/1.530,
+                     6/0.549, 7/1.237, 8/0.640, 9/1.866, 10/0.549}{
     \draw (\x+0.04,0) rectangle (\x+0.26,\h);
   }
   \foreach \x in {1,...,10}{
     \node[below, font=\scriptsize] at (\x,-0.05) {\x};
   }
   \node[below, font=\scriptsize] at (5.5,-0.55) {instance};
-  % legend
-  \draw[fill=black] (7.9,4.55) rectangle (8.12,4.85);
-  \node[right, font=\scriptsize] at (8.16,4.70) {constraint generation};
-  \draw (7.9,4.05) rectangle (8.12,4.35);
-  \node[right, font=\scriptsize] at (8.16,4.20) {lazy constraints};
+  \draw[fill=black] (7.9,5.15) rectangle (8.12,5.45);
+  \node[right, font=\scriptsize] at (8.16,5.30) {constraint generation};
+  \draw (7.9,4.65) rectangle (8.12,4.95);
+  \node[right, font=\scriptsize] at (8.16,4.80) {lazy constraints};
 \end{tikzpicture}
-\caption{Solution time per instance, logarithmic vertical axis. The
-lazy method is faster on every instance and 65 times faster on average.
-Instance 9 is the widest gap, 20.74\,s against 0.18\,s.}
+\caption{Solution time per instance, logarithmic vertical axis. Instance
+3 dominates the picture and the aggregate; on the other nine the two
+methods are within a small factor of each other, and on instances 1 and
+10 constraint generation was the faster of the two.}
 \end{figure}
 
-\textbf{Findings.}\quad
-The two methods return identical objective values on all ten instances,
-as they must, since both converge to the same fully-constrained problem.
-The lazy method is 65 times faster on average. Constraint generation
-required 739 complete master re-solves in total across the ten
-instances, against ten branch-and-bound runs for the lazy method.
+\textbf{Findings, on these ten instances.}\quad
+Both methods returned identical objective values on all ten, as they
+must, since both converge to the same fully-constrained problem.
+
+The aggregate timing ratio is 53.6 to 1 in favour of the lazy method,
+and that single number is misleading enough to be worth unpacking.
+Instance 3 accounts for 98\% of the total constraint-generation time.
+Excluding it, the aggregate ratio falls to 2.0 to 1. The median
+per-instance ratio is 2.5 to 1. On instances 1 and 10 the lazy method
+was actually the \emph{slower} of the two, by factors of 1.7 and 1.2,
+because at that size the callback overhead is not repaid.
+
+So what this experiment supports is a conditional claim: when many
+separation rounds are needed, reusing one search tree pays, and the
+payoff grows with the number of rounds. Instance 3 needed 215 rounds and
+showed a 111 to 1 gap; instances 4 and 10 needed one round each and
+showed none. What it does not support is a claim that the lazy method is
+uniformly faster, or any statement about how the gap behaves at sizes
+not tested here.
+
+Constraint generation required 255 complete master re-solves in total
+across the ten instances, against ten branch-and-bound runs for the lazy
+method.
 
 \textbf{The instance that surprised me.}\quad
 Instance 3 was the worst case for constraint generation, needing 215
 rounds, yet its optimal value 8.3409 is identical to its shortest path
 value. I expected the hardest instance to be a dense one with many
-competing paths. Enumerating all simple $s$--$t$ paths explains it:
+competing paths. Enumerating its simple $s$--$t$ paths explains it:
 instance 3 has exactly one, namely $0 \rightarrow 11 \rightarrow 19$, so
 the shortest and longest paths must coincide. The 215 rounds were not
 spent choosing between paths. They were spent eliminating cycles
 elsewhere in the graph before the model was forced onto the only path
-available. Difficulty here tracks the number of cycles the master can
-chase, not the number of paths that compete.
-
-As a further check, full enumeration of simple $s$--$t$ paths on
-instances 1 and 9 (870 and 2,491 paths respectively) reproduces both the
-minimum and the maximum returned by the solvers exactly.
+available. On this sample, difficulty tracked the number of cycles the
+master could chase rather than the number of paths that competed.
 
 \subsection*{2.8 (e)\quad Algorithmic differences}
 
@@ -513,18 +516,22 @@ rounds are the expensive ones.
 Lazy constraints put the separation inside the search. One tree is built
 and kept. When an incumbent turns out to violate a constraint, it is
 rejected and the constraint is added, but the tree, its bounds, its
-pseudo-costs and its already-proven prunings all survive. That is the
-entire source of the 65$\times$ difference measured above, and it widens
-as instances grow.
+pseudo-costs and its already-proven prunings all survive.
 
-Two costs come with the lazy method. The callback runs inside the
-solver, so separation must be fast, and a slow detection routine is paid
-at every incumbent. The solver must also be told in advance
+That mechanism explains the shape of the results above rather than a
+single headline number. The saving is proportional to how many rounds
+would otherwise be repeated, which is why instance 3 at 215 rounds shows
+a large gap and the single-round instances show none at all.
+
+Two costs come with the lazy method, and they are what the two losing
+instances are made of. The callback runs inside the solver, so
+separation must be fast, and a slow detection routine is paid at every
+incumbent. The solver must also be told in advance
 (\texttt{LazyConstraints = 1}), which disables some presolve reductions
 that would otherwise be unsafe, since presolve cannot know about
 constraints that do not exist yet. Constraint generation keeps full
-presolve on every round. On these instances that trade is decisively in
-favour of lazy, but it is a trade, not a free improvement.
+presolve on every round. When few rounds are needed, those fixed costs
+are not recovered, which is what happened on instances 1 and 10.
 
 \newpage
 %=======================================================================
@@ -637,13 +644,6 @@ $(d_2, s_3)$ & 15.0 & 40 & 2 &  30.0 & \\
 \end{tabular}
 \end{center}
 
-I verified this by hand using delivered-cost-per-unit along each
-factory--DC--store route. The cheapest routes are
-$f_1 \to d_1 \to s_2$, $f_2 \to d_2 \to s_1$ and $f_2 \to d_2 \to s_3$,
-all at \$3 per unit. Loading those to their capacity limits, then
-filling the remainder on the next-cheapest routes, reproduces the flows
-in the table and the total \$415.00 exactly.
-
 \subsection*{3.4 (2a)\quad Robust formulation, worst case}
 
 The uncertainty set is a box: each $c_{ij}$ lies in
@@ -683,13 +683,37 @@ of that forced rerouting.
 
 \subsection*{3.5 (2b)\quad Stochastic formulation, average case}
 
-A stochastic program only differs from a deterministic one if some
-decision must be made before the uncertainty is observed. I therefore
-split the decision by timing. The long-haul factory-to-DC shipments are
-committed first, before the realization is known. The local DC-to-store
-deliveries are chosen afterwards, once capacities and costs are
-observed. Unmet demand is penalised at $p$ per unit, which keeps the
-recourse problem feasible in every scenario.
+A stochastic program differs from a deterministic one only if some
+decision must be committed before the uncertainty is observed. The
+problem statement does not say which decisions those are, so the split
+has to be assumed, and the assumption drives the entire model. I state
+it explicitly rather than leaving it implicit in the notation.
+
+\textbf{Assumption (decision timing).}\quad
+\emph{The factory-to-DC shipments $x_{ij}$, $(i,j) \in A_1$, are
+committed before the realization $(c^{\omega}, u^{\omega})$ is observed.
+The DC-to-store deliveries $y^{\omega}_{jk}$, $(j,k) \in A_2$, and any
+unmet demand $v^{\omega}_{k}$ are decided after it is observed.}
+
+The reading behind it: long-haul factory-to-DC movements are planned and
+dispatched on a longer cycle than local DC-to-store deliveries, so by the
+time the day's realized costs and capacities are known, the inbound
+shipment is already in transit and cannot be redirected. Local
+deliveries still can be.
+
+Two consequences follow, and both are worth flagging because they are
+where the assumption bites.
+
+\begin{itemize}
+\item The first-stage capacity bound must hold in every scenario, since
+      $x$ is fixed before $u^{\omega}$ is seen. That is why it reads
+      $x_{ij} \le 0.99\, u_{ij}$, a worst-case bound sitting inside an
+      otherwise average-case model.
+\item If the split were reversed, or if every decision were deferred
+      until after the realization, the model would collapse to a
+      collection of independent deterministic problems and the stochastic
+      formulation would carry no information the nominal one does not.
+\end{itemize}
 
 \begin{figure}[htbp]
 \centering
@@ -703,14 +727,32 @@ recourse problem feasible in every scenario.
   \node[blk, above=5mm of {(10.4,0)}, anchor=south]
     {\textbf{recourse}\\decide $y^{\omega}_{jk}$ on $A_2$\\and $v^{\omega}_k$};
   \node[below, font=\scriptsize, align=center] at (1.6,-0.25)
-    {must fit every scenario:\\$x_{ij} \le 0.99\, u_{ij}$};
+    {committed blind, so it must fit\\every scenario: $x_{ij} \le 0.99\, u_{ij}$};
   \node[below, font=\scriptsize, align=center] at (10.4,-0.25)
-    {may use the realized\\$u^{\omega}_{jk}$};
+    {chosen after the draw, so it\\may use the realized $u^{\omega}_{jk}$};
 \end{tikzpicture}
-\caption{The two-stage split. Only the first-stage commitment is exposed
-to uncertainty, which is the sole reason the stochastic model differs
-from the nominal one.}
+\caption{The decision-timing assumption drawn out. Only the first-stage
+commitment is exposed to the uncertainty, and that exposure is the sole
+reason the stochastic model differs from the nominal one.}
 \end{figure}
+
+\textbf{The unmet-demand penalty.}\quad
+The recourse stage needs a penalty $p$ per unit of unmet demand,
+otherwise the second stage can be infeasible in scenarios where realized
+capacity cannot carry the committed flow. Its value is not free: $p$ has
+to exceed the most expensive way to actually deliver a unit, or the model
+would prefer paying the penalty to shipping. Over all factory--DC--store
+routes the dearest delivered unit is $f_1 \to d_2 \to s_2$ at
+$4 + 3 = \$7$, so any $p > 7$ makes delivery strictly preferred.
+
+I used $p = 50$. The choice does not affect the answer, which is the
+point of checking it: at 150 scenarios the expected cost is
+\$416.4478 at $p = 7$, \$416.4624 at $p = 8$, and \$416.4624 at
+$p = 20$, $50$ and $500$ alike. Above the \$7 threshold the expected
+unmet demand is zero, so the penalty is never actually paid and its
+magnitude never enters the objective. Below the threshold it does bite:
+at $p = 5$ the model abandons 10.6 units of demand on average, and at
+$p = 1$ it ships nothing at all.
 
 \begin{center}
 \begin{tabular}{@{}ll@{}}
@@ -752,9 +794,8 @@ stochastic model.
 Each parameter is drawn independently as $+1\%$ or $-1\%$ with
 probability one half, matching ``equally likely''. The model has
 $4 + 9|\Omega|$ variables and $2 + 11|\Omega|$ constraints, so it exceeds
-the 2,000-variable Gurobi size-limited licence beyond $|\Omega| = 181$. I
-solved the larger samples with CBC through PuLP and cross-checked at 50
-scenarios, where both solvers fit: both return \$416.6190.
+the 2,000-variable Gurobi size-limited licence beyond $|\Omega| = 181$. The
+larger samples were therefore solved with CBC through PuLP.
 
 \begin{center}
 \begin{tabular}{@{}rlrrr@{}}
@@ -1023,19 +1064,20 @@ about whether this particular instance is unique.
 \caption{The instance and its unique completion.}
 \end{figure}
 
-\textbf{Verification.}\quad
-Three checks, none of which reuses the solver. Every row, every column
-and every $3 \times 3$ block is a permutation of 1 through 9. Every one
-of the 22 given clues is preserved in the solution. And the instance is
-uniquely solvable: adding the no-good cut
+\textbf{Uniqueness.}\quad
+Solving once produces \emph{a} completion. Showing it is \emph{the}
+completion takes one more solve. Add the no-good cut
 \[
   \sum_{(r,c)} x_{r,c,\,v^{*}(r,c)} \;\le\; 80
 \]
-where $v^{*}(r,c)$ is the digit found above, forbids that one assignment
-while leaving every other completion available. Re-solving with that cut
-returns infeasible, which proves no second solution exists. This is a
-cheap and general technique: it converts ``I found a solution'' into
-``I found the only solution'' for one extra solve.
+where $v^{*}(r,c)$ is the digit found above. The left side counts how
+many cells agree with that particular assignment, so the cut forbids all
+81 agreeing at once while leaving every other completion available.
+Re-solving with the cut returns infeasible, which proves no second
+solution exists. The technique is general: it converts ``I found a
+solution'' into ``I found the only solution'' for the price of one extra
+solve, and the same cut repeated $k$ times enumerates the first $k$
+distinct solutions of any binary program.
 
 \newpage
 %=======================================================================
@@ -1134,12 +1176,6 @@ usable criteria matter; Ghouila-Houri (1962) gives a characterization by
 row partition, and interval matrices, network matrices and bipartite
 incidence matrices are the standard TU families worth recognizing on
 sight.
-
-Numerically, for a six-node nine-arc network, enumerating all square
-submatrices at every order from 1 to 6 gives 5,004 determinants, all in
-$\{0, +1, -1\}$, with worst deviation exactly zero. That confirms the
-theorem on one matrix; it does not prove it, which is what the induction
-above is for.
 
 \newpage
 %=======================================================================
