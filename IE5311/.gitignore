@@ -1,0 +1,21 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Node modules pulled in only to build the Word documents
+node_modules/
+package-lock.json
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+
+# Solver scratch files
+*.lp
+*.mps
+*.sol

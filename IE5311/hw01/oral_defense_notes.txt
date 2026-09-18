@@ -1,0 +1,213 @@
+IE 5311 HOMEWORK 01 - ORAL DEFENCE NOTES
+Not part of the submission. Four topics flagged for questioning.
+
+Rule for all four: answer the mechanism, not the result. The numbers are
+in the write-up; what gets probed is whether you know why they came out
+that way, and where each claim stops being true.
+
+
+================================================================
+1. LAZY CONSTRAINT CALLBACKS
+================================================================
+
+THE ONE-SENTENCE ANSWER
+Both methods add subtour constraints on demand; the difference is that
+constraint generation throws away the branch-and-bound tree after every
+round and lazy constraints keep one tree for the whole solve.
+
+THE MECHANISM, IF PRESSED
+  - Gurobi fires the callback at the MIPSOL event, meaning it has found
+    an integer-feasible incumbent.
+  - You call cbGetSolution to read that incumbent, run your separation
+    routine on it (here: find simple cycles in the selected arcs), and
+    if any constraint is violated you pass it back with cbLazy.
+  - The solver rejects that incumbent and carries on from the same node,
+    keeping its bounds, pseudo-costs and already-proven prunings.
+  - You must set model.Params.LazyConstraints = 1 BEFORE optimize(),
+    because it disables presolve reductions that would otherwise be
+    unsafe. Presolve cannot reason about constraints that do not exist
+    yet.
+
+THE TRAP, AND THE HONEST ANSWER
+Q: "So lazy constraints are faster?"
+A: Not uniformly, and our own data says so. Aggregate ratio 53.6 to 1,
+   but instance 3 alone is 98% of the total CG time. Median ratio 2.5 to
+   1. On instances 1 and 10 constraint generation was FASTER, because
+   those needed one to three rounds and the callback overhead was never
+   repaid. The correct claim is conditional: the saving scales with the
+   number of separation rounds that would otherwise be repeated.
+
+Q: "Why is separation speed critical in the callback?"
+A: It runs inside the solver at every incumbent. A slow routine is paid
+   many times over. In constraint generation it is paid once per round.
+
+
+================================================================
+2. TOTAL UNIMODULARITY
+================================================================
+
+THE ONE-SENTENCE ANSWER
+A matrix is totally unimodular when every square submatrix has
+determinant 0, +1 or -1; for an integral right-hand side that forces
+every vertex of the polyhedron to be integral, so the LP relaxation
+returns the integer optimum without branching.
+
+THE CHAIN, IN ORDER
+  Cramer's rule: a vertex solves Bx = d for some square nonsingular
+  submatrix B, so its coordinates are ratios of determinants with
+  det(B) in the denominator. det(B) = +/-1 and d integral => integer
+  vertex.
+  Hoffman and Kruskal (1956) sharpen this to an if-and-only-if: for
+  integral A, {x : Ax <= b, x >= 0} has integral vertices for EVERY
+  integral b exactly when A is TU.
+
+THE PROOF THEY WILL ASK FOR
+Induction on the order k of a square submatrix B of the node-arc
+incidence matrix. Each column of the full matrix has exactly one +1
+(tail) and one -1 (head).
+  k = 1: the entry is 0 or +/-1 by construction.
+  k > 1, three cases:
+    (a) some column of B is all zero        -> det(B) = 0
+    (b) some column has one nonzero entry   -> expand along it, get
+        +/-1 times an order k-1 determinant, which is in {0,+/-1} by
+        the induction hypothesis
+    (c) every column of B has both a +1 and a -1 -> every column sums
+        to zero -> the rows sum to the zero vector -> B is singular
+        -> det(B) = 0
+
+WHY IT APPLIES HERE
+Shortest path constraints are flow conservation (that incidence matrix)
+plus bounds 0 <= x <= 1. Appending an identity block preserves TU. The
+RHS is +1 at s, -1 at t, 0 elsewhere, all integral. So every vertex is
+integral, and since a bounded LP attains its optimum at a vertex, the
+simplex method returns a binary solution unasked. Matches what we
+measured: zero gap on all ten, no fractional value, at most one node.
+
+THE TRAP
+Q: "Then why doesn't it work for longest path?"
+A: Two separate reasons. The subtour constraints are not part of any TU
+   system. And the odd-cycle incidence matrix is the standard
+   counterexample: a triangle gives determinant 2. TU is fragile;
+   adding constraints to a TU system usually destroys it.
+
+Q: "Is TU necessary for integrality?"
+A: Not for a single b. Hoffman-Kruskal's necessity is over ALL integral
+   b. A specific instance can have integral vertices by luck.
+
+
+================================================================
+3. ROBUST VERSUS STOCHASTIC, AND THE TIMING ASSUMPTION
+================================================================
+
+THE ONE-SENTENCE ANSWER
+Robust optimises the worst realization over an uncertainty set;
+stochastic optimises the expectation over a distribution. Neither means
+anything until you say WHEN each decision is made relative to when the
+uncertainty is observed.
+
+THE ASSUMPTION, STATED
+Factory-to-DC shipments x are committed BEFORE (c,u) is revealed.
+DC-to-store deliveries y and unmet demand v are decided AFTER.
+Justification: long-haul inbound is dispatched on a longer cycle than
+local delivery, so by the time today's realized capacity is known the
+inbound load is already in transit.
+
+WHY THE ASSUMPTION IS LOAD-BEARING
+  - It is why the first-stage capacity bound is x <= 0.99u, a worst-case
+    bound sitting inside an average-case model: x is fixed blind, so it
+    must fit every scenario.
+  - Reverse the split, or defer everything until after the draw, and the
+    model decomposes into independent deterministic problems. The
+    stochastic formulation would then carry no information the nominal
+    one does not.
+
+THE THREE NUMBERS AND WHY THEY ORDER THAT WAY
+  deterministic $415.00  <  stochastic $416.44  <  robust $421.57
+Average-case protection costs less than worst-case protection and more
+than assuming nothing goes wrong. If your numbers ever violate that
+ordering, you have a bug.
+
+THE POINT MOST LIKELY TO BE PROBED
+Q: "Your costs are random. Why doesn't that change the answer?"
+A: It doesn't, and that is provable, not empirical. E[c] = 0.5(0.99c) +
+   0.5(1.01c) = c exactly, and expectation is linear, so the mean-cost
+   problem IS the nominal problem. Only the CAPACITY randomness matters,
+   and only because x is committed before capacity is seen. A symmetric
+   mean-zero perturbation of objective coefficients alone never changes
+   a risk-neutral stochastic linear program.
+
+Q: "Why did the robust plan change the routing and not just the price?"
+A: Because the change came from the capacity side, not the cost side. A
+   uniform 1.01 scaling of every cost cannot reorder which route is
+   cheapest. But shrinking every capacity by 1% strips 0.4 units off
+   (d2,s1), which was sitting at its limit, and that has to be picked
+   up elsewhere. It opens arc (d1,s1). That is also why the premium is
+   1.58% rather than 1%: the excess is the cost of the forced reroute.
+
+Q: "Justify the $50 penalty."
+A: It has to exceed the dearest delivered unit, else the model prefers
+   paying it to shipping. Dearest route is f1->d2->s2 at 4+3 = $7. So
+   any p > 7 works. Above that threshold the answer is identical
+   ($416.4624 at p = 8, 20, 50 and 500) because expected unmet demand is
+   zero and the penalty is never paid. Below it, it bites: p = 5 abandons
+   10.6 units, p = 1 ships nothing.
+
+
+================================================================
+4. THE SUDOKU UNIQUENESS CUT
+================================================================
+
+THE ONE-SENTENCE ANSWER
+Solving once gives A solution; adding a no-good cut that forbids exactly
+that assignment and re-solving to infeasibility proves it is THE
+solution.
+
+THE CUT
+  sum over all 81 cells of x[r, c, v*(r,c)]  <=  80
+where v*(r,c) is the digit found in the first solve.
+
+WHY IT IS CORRECT
+The left side counts how many cells agree with that particular
+assignment. It equals 81 only for that exact solution. Setting it <= 80
+forbids that one point of the feasible set and nothing else: any other
+valid completion differs in at least one cell, so its count is at most
+80 and it survives. Infeasible on re-solve therefore means no other
+completion exists.
+
+THE GENERALIZATION THEY MAY ASK FOR
+Repeat it k times, adding one cut per solution found, and you enumerate
+the first k distinct solutions of any binary program. This is the
+standard no-good / solution-elimination cut.
+
+THE TRAP
+Q: "22 clues is above the minimum of 17, so isn't it unique anyway?"
+A: No. McGuire, Tugemann and Civario (2012) proved 17 is the minimum
+   clue count for uniqueness to be POSSIBLE. It says nothing about any
+   particular instance. Plenty of 30-clue puzzles have multiple
+   solutions. Clue count is necessary, not sufficient, which is exactly
+   why the cut is worth running.
+
+Q: "Why equalities rather than <= 1 in the model?"
+A: Nine cells and nine digits per row means "at most once" and "exactly
+   once" coincide by counting. Equalities give the solver tighter
+   information for free.
+
+
+================================================================
+5. THE ONE THING TO VOLUNTEER
+================================================================
+
+If asked what you would change: the in-degree constraint. The first
+version of the longest-path model had only an out-degree limit. Flow
+conservation makes in-degree redundant at every node except t, where
+b_t = -1 gives in(t) = out(t) + 1 and the out-degree limit only bounds
+that by in(t) <= 2. So t could be entered twice and lie on a cycle, and
+the separation routine generated 498 cuts over node sets containing t
+across the ten instances -- cuts the written family, indexed over
+S subset V\{s,t}, never authorized. Adding the in-degree family forces
+out(t) = 0, confines every cycle to V\{s,t}, and makes the written model
+and the executed model the same object. It also cut the total round
+count from 739 to 255.
+
+Knowing where your own model was wrong, and why, is worth more in a viva
+than any of the numbers.
