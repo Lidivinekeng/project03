@@ -1,56 +1,3 @@
-"""
-IE 5311 Homework, Problem 2 [40 pts]: shortest and longest s-t paths.
-
-Ten random directed graphs, |V| = 20, arc weights c_ij ~ U[1,10],
-each graph connected and containing at least one s-t path.
-
-COMMON SETS AND PARAMETERS
-    V           nodes, |V| = 20, with source s and terminal t
-    A subset V x V   directed arcs
-    out(i)      {j : (i,j) in A},  in(i) = {j : (j,i) in A}
-    c_ij        weight of arc (i,j),  c_ij ~ U[1,10]
-    b_i         +1 at s, -1 at t, 0 otherwise
-
-DECISION VARIABLES (both problems)
-    x_ij in {0,1}   1 if arc (i,j) is used
-
--- 1. SHORTEST PATH ---------------------------------------------------
-    min   sum_{(i,j) in A} c_ij x_ij
-    s.t.  sum_{j in out(i)} x_ij - sum_{j in in(i)} x_ji = b_i   for i in V
-          x_ij in {0,1}
-
-    The LP relaxation replaces the last line by 0 <= x_ij <= 1. The
-    constraint matrix is the node-arc incidence matrix, which is totally
-    unimodular, and the right-hand side is integral, so every vertex of
-    the relaxed polytope is integral. I therefore expect the relaxation
-    to return the same objective value on every instance, with no
-    branching.
-
--- 2. LONGEST SIMPLE PATH ---------------------------------------------
-    max   sum_{(i,j) in A} c_ij x_ij
-    s.t.  sum_{j in out(i)} x_ij - sum_{j in in(i)} x_ji = b_i   for i in V
-          sum_{j in out(i)} x_ij <= 1                            for i in V
-          sum_{(i,j) in A(S)} x_ij <= |S| - 1
-                          for all S subset V\\{s,t} with |S| >= 2
-          x_ij in {0,1}
-
-    The degree restriction enforces "each location at most once". The
-    third family is subtour elimination and is NOT optional here. Under
-    minimization with positive weights a stray cycle only adds cost, so
-    it never appears in an optimum. Under MAXIMIZATION every cycle adds
-    weight for free, so without that family the model is unbounded in
-    structure: it returns an s-t path plus as many disjoint cycles as it
-    can fit. The family has exponentially many members, so it is
-    generated on demand, two ways:
-
-      (b) constraint generation: solve the master to optimality, inspect
-          the solution, add violated constraints, re-solve. Each round is
-          a complete branch-and-bound run.
-      (c) lazy constraints: one branch-and-bound run, with a callback
-          that rejects any incumbent containing a cycle and adds the
-          corresponding constraint from inside the search.
-"""
-
 import time
 
 import gurobipy as gp
@@ -64,14 +11,7 @@ SRC, SINK = 0, 19
 W_LO, W_HI = 1.0, 10.0
 
 
-# ----------------------------------------------------------------------
-# Instance generation
-# ----------------------------------------------------------------------
 def make_graph(seed, p=0.18):
-    """
-    Directed G(n,p) that is weakly connected and has at least one s-t
-    path. p is raised until both hold, so generation always terminates.
-    """
     rng = np.random.default_rng(seed)
     while True:
         G = nx.gnp_random_graph(N_NODES, p, seed=int(rng.integers(1 << 30)),
@@ -99,9 +39,6 @@ def flow_constraints(m, x, G):
             name=f"bal_{i}")
 
 
-# ----------------------------------------------------------------------
-# 1. Shortest path, integer and relaxed
-# ----------------------------------------------------------------------
 def shortest_path(G, relax=False):
     m = gp.Model("sp")
     m.setParam("OutputFlag", 0)
@@ -114,19 +51,14 @@ def shortest_path(G, relax=False):
     m.optimize()
     dt = time.perf_counter() - t0
     assert m.Status == GRB.OPTIMAL
-    vals = {a: x[a].X for a in arcs_of(G) if x[a].X > 1e-9}
-    fractional = [v for v in vals.values() if 1e-6 < v < 1 - 1e-6]
-    return m.ObjVal, dt, len(fractional), m.NodeCount if not relax else 0
+    nfrac = sum(1 for a in arcs_of(G) if 1e-6 < x[a].X < 1 - 1e-6)
+    return m.ObjVal, dt, nfrac, 0 if relax else m.NodeCount
 
 
-# ----------------------------------------------------------------------
-# 2. Longest simple path
-# ----------------------------------------------------------------------
 def cycles_in(selected):
-    """Simple directed cycles among the chosen arcs."""
     H = nx.DiGraph()
     H.add_edges_from(selected)
-    return [c for c in nx.simple_cycles(H)]
+    return list(nx.simple_cycles(H))
 
 
 def longest_master(G, add_degree=True):
@@ -138,28 +70,14 @@ def longest_master(G, add_degree=True):
     flow_constraints(m, x, G)
     if add_degree:
         for i in G.nodes():
-            # out-degree: each node is left at most once
             m.addConstr(gp.quicksum(x[i, j] for j in G.successors(i)) <= 1,
                         name=f"outdeg_{i}")
-            # in-degree: each node is entered at most once.
-            #
-            # This is NOT redundant. Balance gives out(i) - in(i) = b_i.
-            # For i not in {s,t}, b_i = 0, so in(i) = out(i) <= 1 already.
-            # For s, b_s = +1 forces out(s) = 1 and in(s) = 0.
-            # For t, b_t = -1 gives in(t) = out(t) + 1, and the out-degree
-            # limit only bounds that by in(t) <= 2. So without this
-            # constraint t may be entered twice and lie on a cycle, and the
-            # separation routine then generates cuts over node sets that
-            # contain t. Adding it forces out(t) = 0 and in(t) = 1, so no
-            # cycle can touch s or t and the subtour family is correctly
-            # stated over S subset V \ {s,t}.
             m.addConstr(gp.quicksum(x[j, i] for j in G.predecessors(i)) <= 1,
                         name=f"indeg_{i}")
     return m, x
 
 
 def cycle_cut(cycle, G):
-    """Arcs with both endpoints in the cycle's node set."""
     Sset = set(cycle)
     return [(i, j) for (i, j) in G.edges() if i in Sset and j in Sset], len(Sset)
 
@@ -204,20 +122,6 @@ def longest_lazy(G):
     dt = time.perf_counter() - t0
     assert m.Status == GRB.OPTIMAL, m.Status
     return m.ObjVal, dt, m._cuts, m.NodeCount
-
-
-def path_from(G, arcs_used):
-    """Walk s to t, so the reported path can be checked independently."""
-    nxt = {i: j for (i, j) in arcs_used}
-    node, seq = SRC, [SRC]
-    while node != SINK:
-        if node not in nxt:
-            return None
-        node = nxt[node]
-        if node in seq:
-            return None
-        seq.append(node)
-    return seq
 
 
 if __name__ == "__main__":

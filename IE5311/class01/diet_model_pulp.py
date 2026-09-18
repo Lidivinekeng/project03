@@ -1,37 +1,5 @@
-"""
-IE 5311-001 Principles of Optimization, Fall 2026, Ningji Wei.
-Part 1, Problem 1: the diet problem, slides 14 to 19.
-
-Solver-free version. Uses PuLP with the bundled CBC solver, which needs
-no license and no registration. The model is identical to the gurobipy
-version in diet_model.py, which is the point: the formulation is the
-deliverable, the solver is an implementation detail.
-
-    Sets
-        I   foods,     indexed by i
-        J   nutrients, indexed by j
-
-    Parameters
-        c_i    cost per unit of food i                   [dollars/unit]
-        a_ij   amount of nutrient j per unit of food i   [grams/unit]
-        l_j    minimum required level of nutrient j      [grams/day]
-        u_j    maximum allowed level of nutrient j       [grams/day]
-        f_i    maximum servings of food i per day        [units/day]
-
-    Decision variables
-        x_i >= 0   units of food i consumed per day      [units/day]
-
-    Model
-        min   sum_{i in I} c_i x_i
-        s.t.  l_j <= sum_{i in I} a_ij x_i <= u_j    for all j in J
-              0 <= x_i <= f_i                        for all i in I
-"""
-
 import pulp
 
-# ----------------------------------------------------------------------
-# DATA. Edit this block only. One unit is 100 grams.
-# ----------------------------------------------------------------------
 FOODS = ["tomatoes", "potatoes", "beef", "chicken", "noodle", "rice"]
 NUTRIENTS = ["protein", "fat", "carbs"]
 
@@ -54,13 +22,6 @@ upper = {"protein": 120.0, "fat": 80.0, "carbs": 325.0}
 max_servings = {i: 10.0 for i in FOODS}
 
 
-# ----------------------------------------------------------------------
-# MODEL. Generic over the index sets, exactly as in the gurobipy file.
-# ----------------------------------------------------------------------
-# Binding test with a RELATIVE tolerance. An absolute 1e-6 is too tight:
-# CBC returns the carbohydrate intake as 225.0000011, which is 1.1e-6
-# above its own bound, so an absolute test calls a binding constraint
-# slack. Scale the tolerance to the size of the bound instead.
 def _binding(value, bound, rel=1e-6):
     return abs(value - bound) <= rel * max(1.0, abs(bound))
 
@@ -68,13 +29,10 @@ def _binding(value, bound, rel=1e-6):
 def build_and_solve(foods, nutrients, c, a, l, u, f, verbose=True):
     m = pulp.LpProblem("diet", pulp.LpMinimize)
 
-    # x_i, with 0 <= x_i <= f_i
     x = {i: pulp.LpVariable(f"x_{i}", lowBound=0, upBound=f[i]) for i in foods}
 
-    # min sum_{i in I} c_i x_i
     m += pulp.lpSum(c[i] * x[i] for i in foods), "total_cost"
 
-    # l_j <= sum_{i in I} a_ij x_i <= u_j   for all j in J
     for j in nutrients:
         intake = pulp.lpSum(a[i, j] * x[i] for i in foods)
         m += intake >= l[j], f"min_intake_{j}"

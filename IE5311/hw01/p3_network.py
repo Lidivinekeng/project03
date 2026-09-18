@@ -1,45 +1,7 @@
-"""
-IE 5311 Homework, Problem 3 [45 pts]: GlobalLogix distribution network.
-
-Part 1 : deterministic minimum-cost flow.
-Part 2 : robust (worst-case) and stochastic (average-case) formulations
-         under +/- 1% variation in capacity and cost, equally likely.
-Part 3 : multicommodity extension (formulated; see the write-up).
-
-SETS
-    N = F  u  D  u  S      nodes
-        F = {f1, f2}       factories
-        D = {d1, d2}       distribution centres (pure transshipment)
-        S = {s1, s2, s3}   stores
-    A subset N x N         directed arcs, split as
-        A1 = F x D         factory-to-DC arcs
-        A2 = D x S         DC-to-store arcs
-
-PARAMETERS
-    b_i     net supply at node i: +supply at factories, -demand at
-            stores, 0 at DCs                                 [units]
-    u_ij    capacity of arc (i,j)                            [units]
-    c_ij    cost per unit shipped on arc (i,j)               [$/unit]
-
-DECISION VARIABLES
-    x_ij >= 0   units shipped on arc (i,j)                   [units]
-
-DETERMINISTIC MODEL
-    min   sum_{(i,j) in A} c_ij x_ij
-    s.t.  sum_{j: (i,j) in A} x_ij - sum_{j: (j,i) in A} x_ji = b_i
-                                                   for all i in N
-          0 <= x_ij <= u_ij                        for all (i,j) in A
-"""
-
-import itertools
-
 import gurobipy as gp
 import numpy as np
 from gurobipy import GRB
 
-# ----------------------------------------------------------------------
-# DATA, transcribed from the assignment table
-# ----------------------------------------------------------------------
 F = ["f1", "f2"]
 D = ["d1", "d2"]
 S = ["s1", "s2", "s3"]
@@ -49,7 +11,6 @@ SUPPLY = {"f1": 70.0, "f2": 50.0}
 DEMAND = {"s1": 40.0, "s2": 45.0, "s3": 35.0}
 b = {i: SUPPLY.get(i, 0.0) - DEMAND.get(i, 0.0) for i in N}
 
-#                       capacity, cost
 ARC = {
     ("f1", "d1"): (60.0, 2.0),
     ("f1", "d2"): (50.0, 4.0),
@@ -63,20 +24,12 @@ ARC = {
     ("d2", "s3"): (40.0, 2.0),
 }
 A = list(ARC)
-A1 = [(i, j) for (i, j) in A if i in F]     # committed first
-A2 = [(i, j) for (i, j) in A if i in D]     # recourse
+A1 = [(i, j) for (i, j) in A if i in F]
+A2 = [(i, j) for (i, j) in A if i in D]
 u = {a: ARC[a][0] for a in A}
 c = {a: ARC[a][1] for a in A}
 
-DEV = 0.01          # +/- 1%
-# Penalty per unit of unmet demand in the recourse stage, $/unit.
-# It has to exceed the most expensive way to actually deliver a unit,
-# otherwise the model would rather pay the penalty than ship. The dearest
-# factory-DC-store route is f1 -> d2 -> s2 at 4 + 3 = $7/unit, so any
-# p > 7 makes delivery strictly preferred. 50 is well clear of that
-# threshold; the optimal value and the first-stage plan are identical for
-# every p above 7, because expected unmet demand is zero there and the
-# penalty is never actually paid.
+DEV = 0.01
 PENALTY = 50.0
 
 
@@ -95,17 +48,10 @@ def check_data():
               f"  -> reachable: {cap >= DEMAND[k]}")
 
 
-# ----------------------------------------------------------------------
-# PART 1: deterministic
-# ----------------------------------------------------------------------
-def deterministic(cost=None, cap=None, verbose=True, tag="deterministic"):
-    cost = cost or c
-    cap = cap or u
+def deterministic(cost=c, cap=u, verbose=True, tag="deterministic"):
     m = gp.Model(tag)
     m.setParam("OutputFlag", 0)
-    x = m.addVars(A, lb=0.0, name="x")
-    for a in A:
-        x[a].UB = cap[a]
+    x = m.addVars(A, lb=0.0, ub=cap, name="x")
     m.setObjective(gp.quicksum(cost[a] * x[a] for a in A), GRB.MINIMIZE)
     for i in N:
         m.addConstr(
@@ -126,43 +72,13 @@ def deterministic(cost=None, cap=None, verbose=True, tag="deterministic"):
     return m.ObjVal, {a: x[a].X for a in A}
 
 
-# ----------------------------------------------------------------------
-# PART 2a: ROBUST, worst case over the box
-#
-#   The uncertainty set is U = { (c,u) : c_ij in [0.99 c, 1.01 c],
-#                                        u_ij in [0.99 u, 1.01 u] }.
-#   Cost enters the objective with a positive coefficient and x >= 0, so
-#   the inner maximum is attained at c_ij = 1.01 c_ij.
-#   The capacity constraint must hold for EVERY realization, so the
-#   binding bound is the smallest, u_ij = 0.99 u_ij.
-#   The worst case therefore has a closed form and needs no inner model.
-# ----------------------------------------------------------------------
 def robust(verbose=True):
     c_hi = {a: c[a] * (1 + DEV) for a in A}
     u_lo = {a: u[a] * (1 - DEV) for a in A}
     return deterministic(c_hi, u_lo, verbose, tag="robust (worst case)")
 
 
-# ----------------------------------------------------------------------
-# PART 2b: TWO-STAGE STOCHASTIC PROGRAM
-#
-#   Split by when the decision is made. Long-haul factory-to-DC shipments
-#   are committed before the realization is known (first stage). Local
-#   DC-to-store deliveries are chosen after it is observed (recourse).
-#   Unmet demand is penalised, so the recourse problem is always feasible.
-#
-#   min   sum_{(i,j) in A1} c_ij x_ij
-#         + sum_w pi_w [ sum_{(j,k) in A2} c^w_jk y^w_jk
-#                        + p sum_{k in S} v^w_k ]
-#   s.t.  sum_{j} x_ij <= S_i                        for i in F
-#         x_ij <= (1 - DEV) u_ij                     for (i,j) in A1
-#              (committed before u is seen, so it must fit every case)
-#         sum_i x_ij = sum_k y^w_jk                  for j in D, all w
-#         sum_j y^w_jk + v^w_k = D_k                 for k in S, all w
-#         0 <= y^w_jk <= u^w_jk,  v^w_k >= 0
-# ----------------------------------------------------------------------
 def make_scenarios(n_scen, seed=5311):
-    """Each parameter independently +DEV or -DEV with probability 1/2."""
     rng = np.random.default_rng(seed)
     scen = []
     for _ in range(n_scen):
@@ -180,15 +96,9 @@ def stochastic(scenarios, verbose=True):
     m = gp.Model("two_stage_sp")
     m.setParam("OutputFlag", 0)
 
-    x = m.addVars(A1, lb=0.0, name="x")                  # first stage
-    # addVars(W, A2) would flatten the arc tuple into two index slots,
-    # so build the (scenario, tail, head) keys explicitly.
-    YK = [(w, i, j) for w in W for (i, j) in A2]
-    y = m.addVars(YK, lb=0.0, name="y")                  # recourse
-    v = m.addVars(W, S, lb=0.0, name="v")                # unmet demand
-
-    for a in A1:
-        x[a].UB = u[a] * (1 - DEV)
+    x = m.addVars(A1, lb=0.0, ub={a: u[a] * (1 - DEV) for a in A1}, name="x")
+    y = m.addVars([(w, i, j) for w in W for (i, j) in A2], lb=0.0, name="y")
+    v = m.addVars(W, S, lb=0.0, name="v")
 
     m.setObjective(
         gp.quicksum(c[a] * x[a] for a in A1)
@@ -229,14 +139,7 @@ def stochastic(scenarios, verbose=True):
     return m.ObjVal, {a: x[a].X for a in A1}, unmet
 
 
-
 def stochastic_cbc(scenarios, verbose=False):
-    """
-    Same two-stage model under PuLP/CBC. Needed because the Gurobi
-    size-limited licence caps a model at 2000 variables and 2000
-    constraints, and this SP uses 4 + 9|W| variables and 2 + 11|W|
-    constraints, so it exceeds the cap beyond |W| = 181.
-    """
     import pulp
     W = range(len(scenarios))
     pi = 1.0 / len(scenarios)
@@ -270,7 +173,6 @@ def stochastic_cbc(scenarios, verbose=False):
 
 
 def gurobi_fits(n_scen):
-    """4 + 9n variables, 2 + 11n constraints, against a 2000 cap each."""
     return (4 + 9 * n_scen <= 2000) and (2 + 11 * n_scen <= 2000)
 
 

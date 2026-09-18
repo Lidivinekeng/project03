@@ -1,13 +1,3 @@
-"""
-IE 5311-001 Principles of Optimization, Fall 2026, Ningji Wei.
-Part 1: Problems 1 to 4, plus the total unimodularity exploration.
-
-Every model is written in general indexed form per the course
-convention. Data lives in tables; the model functions mention no
-specific node, food, city or facility. Solver is PuLP with CBC, which
-needs no license.
-"""
-
 import itertools
 import math
 
@@ -24,18 +14,6 @@ def rule(title):
     print("=" * 66)
 
 
-# ======================================================================
-# PROBLEM 2: SHORTEST PATH  (slides 20 to 27)
-#
-#   Sets        V nodes, A arcs (i,j)
-#   Parameters  c_ij arc cost, s source, t sink
-#   Variables   x_ij in {0,1}, 1 if arc (i,j) is traversed
-#
-#   min  sum_{(i,j) in A} c_ij x_ij
-#   s.t. sum_{j in out(i)} x_ij - sum_{j in in(i)} x_ji = b_i  for i in V
-#        with b_s = 1, b_t = -1, b_i = 0 otherwise
-#        x_ij in {0,1}
-# ======================================================================
 SP_ARCS = {
     ("s", "a"): 4.0, ("s", "b"): 2.0,
     ("a", "b"): 5.0, ("a", "c"): 10.0,
@@ -48,7 +26,6 @@ SP_NODES = sorted({n for arc in SP_ARCS for n in arc})
 
 
 def shortest_path(nodes, arcs, source, sink, relax=False):
-    """Arc-based formulation. relax=True drops integrality."""
     cat = pulp.LpContinuous if relax else pulp.LpBinary
     m = pulp.LpProblem("shortest_path", pulp.LpMinimize)
     x = {a: pulp.LpVariable(f"x_{a[0]}_{a[1]}", lowBound=0, upBound=1, cat=cat)
@@ -70,7 +47,6 @@ def shortest_path(nodes, arcs, source, sink, relax=False):
 
 
 def incidence_matrix(nodes, arcs):
-    """Node-arc incidence matrix: +1 at the tail, -1 at the head."""
     A = np.zeros((len(nodes), len(arcs)))
     idx = {n: k for k, n in enumerate(nodes)}
     for col, (i, j) in enumerate(arcs):
@@ -80,13 +56,8 @@ def incidence_matrix(nodes, arcs):
 
 
 def is_totally_unimodular(A, max_order=4):
-    """
-    Exhaustive check on every square submatrix up to max_order.
-    A matrix is totally unimodular when every square submatrix has
-    determinant in {0, +1, -1}.
-    """
     rows, cols = A.shape
-    bad = []
+    bad = 0
     checked = 0
     for k in range(1, min(max_order, rows, cols) + 1):
         for rs in itertools.combinations(range(rows), k):
@@ -94,25 +65,10 @@ def is_totally_unimodular(A, max_order=4):
                 d = np.linalg.det(A[np.ix_(rs, cs)])
                 checked += 1
                 if min(abs(d), abs(d - 1), abs(d + 1)) > 1e-7:
-                    bad.append((rs, cs, d))
-    return len(bad) == 0, checked, bad
+                    bad += 1
+    return bad == 0, checked
 
 
-# ======================================================================
-# PROBLEM 3: TRAVELLING SALESMAN, DFJ  (slides 28 to 34)
-#
-#   Sets        V cities, E = {{i,j} : i < j} edges
-#   Parameters  c_ij distance
-#   Variables   x_ij in {0,1}, 1 if edge {i,j} is on the tour
-#
-#   min  sum_{{i,j} in E} c_ij x_ij
-#   s.t. sum_{j != i} x_ij = 2                       for all i in V
-#        sum_{{i,j} subset S} x_ij <= |S| - 1        for all S, 2<=|S|<=n-1
-#        x_ij in {0,1}
-#
-#   The second family has 2^n - O(n) members, so it is generated on
-#   demand: master problem, then a separation subproblem (slides 33-34).
-# ======================================================================
 TSP_COORDS = {
     1: (0.0, 0.0), 2: (4.0, 1.0), 3: (5.0, 4.0),
     4: (2.0, 5.0), 5: (-1.0, 3.0), 6: (1.0, 2.0),
@@ -124,8 +80,11 @@ def euclidean(coords):
             for i in coords for j in coords if i < j}
 
 
+def edge_var(x, i, j):
+    return x[(i, j)] if i < j else x[(j, i)]
+
+
 def components(cities, chosen):
-    """Connected components of the selected-edge graph."""
     adj = {i: set() for i in cities}
     for (i, j) in chosen:
         adj[i].add(j)
@@ -147,19 +106,15 @@ def components(cities, chosen):
 
 
 def tsp_dfj(cities, dist, verbose=True):
-    """Master problem plus subtour separation. Returns tour and rounds."""
     m = pulp.LpProblem("tsp_dfj", pulp.LpMinimize)
     x = {(i, j): pulp.LpVariable(f"x_{i}_{j}", cat=pulp.LpBinary)
          for (i, j) in dist}
 
-    def var(i, j):
-        return x[(i, j)] if i < j else x[(j, i)]
-
     m += pulp.lpSum(dist[e] * x[e] for e in dist), "tour_length"
 
-    # degree: every city touched by exactly two tour edges
     for i in cities:
-        m += pulp.lpSum(var(i, j) for j in cities if j != i) == 2, f"degree_{i}"
+        m += pulp.lpSum(edge_var(x, i, j) for j in cities if j != i) == 2, \
+             f"degree_{i}"
 
     rounds, cuts = 0, 0
     while True:
@@ -173,7 +128,6 @@ def tsp_dfj(cities, dist, verbose=True):
                   f"{len(comps)} component(s) {[sorted(c) for c in comps]}")
         if len(comps) == 1:
             return pulp.value(m.objective), chosen, rounds, cuts
-        # separation subproblem: each component gives a violated constraint
         for S in comps:
             inside = [(i, j) for (i, j) in dist if i in S and j in S]
             m += pulp.lpSum(x[e] for e in inside) <= len(S) - 1, \
@@ -182,36 +136,19 @@ def tsp_dfj(cities, dist, verbose=True):
 
 
 def tsp_lp_relaxation(cities, dist):
-    """Degree constraints only, integrality dropped. Gives the DFJ bound."""
     m = pulp.LpProblem("tsp_lp", pulp.LpMinimize)
     x = {e: pulp.LpVariable(f"y_{e[0]}_{e[1]}", lowBound=0, upBound=1)
          for e in dist}
 
-    def var(i, j):
-        return x[(i, j)] if i < j else x[(j, i)]
-
     m += pulp.lpSum(dist[e] * x[e] for e in dist)
     for i in cities:
-        m += pulp.lpSum(var(i, j) for j in cities if j != i) == 2
+        m += pulp.lpSum(edge_var(x, i, j) for j in cities if j != i) == 2
     m.solve(SOLVER)
     frac = {e: x[e].value() for e in dist
             if TOL < x[e].value() < 1 - TOL}
     return pulp.value(m.objective), frac
 
 
-# ======================================================================
-# PROBLEM 4: FACILITY LOCATION  (slides 36 to 38)
-#
-#   Sets        F facilities (i), C customers (j)
-#   Parameters  f_i opening cost, c_ij cost of serving j from i
-#   Variables   y_i in {0,1} open facility i
-#               x_ij >= 0 fraction of customer j served by facility i
-#
-#   min  sum_i f_i y_i + sum_i sum_j c_ij x_ij
-#   s.t. sum_i x_ij = 1            for all j in C
-#        x_ij <= y_i               for all i in F, j in C
-#        x_ij >= 0, y_i in {0,1}
-# ======================================================================
 FL_OPEN = {"F1": 14.0, "F2": 13.0, "F3": 8.0, "F4": 17.0}
 FL_SERVE = {
     ("F1", "C1"): 12.0, ("F1", "C2"): 3.0, ("F1", "C3"): 4.0,
@@ -226,10 +163,13 @@ FL_SERVE = {
 
 
 def facility_location(facilities, customers, open_cost, serve_cost,
-                      strong=True):
-    """strong=True uses x_ij <= y_i; strong=False uses the aggregated cut."""
+                      strong=True, relax=False):
     m = pulp.LpProblem("facility_location", pulp.LpMinimize)
-    y = {i: pulp.LpVariable(f"y_{i}", cat=pulp.LpBinary) for i in facilities}
+    if relax:
+        y = {i: pulp.LpVariable(f"y_{i}", lowBound=0, upBound=1)
+             for i in facilities}
+    else:
+        y = {i: pulp.LpVariable(f"y_{i}", cat=pulp.LpBinary) for i in facilities}
     x = {(i, j): pulp.LpVariable(f"x_{i}_{j}", lowBound=0, upBound=1)
          for i in facilities for j in customers}
 
@@ -253,43 +193,10 @@ def facility_location(facilities, customers, open_cost, serve_cost,
     opened = [i for i in facilities if y[i].value() > 0.5]
     assign = {j: i for i in facilities for j in customers
               if x[i, j].value() > 0.5}
-    return pulp.value(m.objective), opened, assign, m, y, x
-
-
-def facility_location_lp_bound(facilities, customers, open_cost, serve_cost,
-                               strong=True):
-    """Same model with integrality dropped, to compare relaxation strength."""
-    m = pulp.LpProblem("fl_lp", pulp.LpMinimize)
-    y = {i: pulp.LpVariable(f"y_{i}", lowBound=0, upBound=1) for i in facilities}
-    x = {(i, j): pulp.LpVariable(f"x_{i}_{j}", lowBound=0, upBound=1)
-         for i in facilities for j in customers}
-    m += (pulp.lpSum(open_cost[i] * y[i] for i in facilities)
-          + pulp.lpSum(serve_cost[i, j] * x[i, j]
-                       for i in facilities for j in customers))
-    for j in customers:
-        m += pulp.lpSum(x[i, j] for i in facilities) == 1
-    if strong:
-        for i in facilities:
-            for j in customers:
-                m += x[i, j] <= y[i]
-    else:
-        for i in facilities:
-            m += pulp.lpSum(x[i, j] for j in customers) <= len(customers) * y[i]
-    m.solve(SOLVER)
-    return pulp.value(m.objective)
+    return pulp.value(m.objective), opened, assign
 
 
 def facility_two_player(facilities, customers, open_cost, serve_cost):
-    """
-    Two-player reading (slide 38). The leader chooses which facilities to
-    open. Each customer then picks the cheapest open facility on its own.
-    Enumerating every leader choice evaluates the follower exactly, so
-    this brute force is the ground truth for the single-level MIP.
-
-    Returns the optimal value and EVERY leader choice attaining it.
-    Ties are common here, so reporting one arbitrary winner would hide
-    the fact that the MIP may legitimately return a different set.
-    """
     results = []
     for k in range(1, len(facilities) + 1):
         for S in itertools.combinations(facilities, k):
@@ -306,9 +213,7 @@ def facility_two_player(facilities, customers, open_cost, serve_cost):
     return best_val, optima
 
 
-# ======================================================================
 if __name__ == "__main__":
-    # ---------------- Problem 2 ----------------
     rule("PROBLEM 2: SHORTEST PATH (slides 20-27)")
     cost_ip, path_ip, _ = shortest_path(SP_NODES, SP_ARCS, "s", "t")
     print(f"integer program : cost {cost_ip:.1f}, arcs {sorted(path_ip)}")
@@ -320,23 +225,20 @@ if __name__ == "__main__":
     print(f"LP solution is integral without being asked : {integral}")
     print(f"integrality gap : {cost_lp - cost_ip:.6f}")
 
-    # ---------------- Exploration: total unimodularity ----------------
     rule("EXPLORATION: TOTAL UNIMODULARITY (slide 26)")
     A = incidence_matrix(SP_NODES, list(SP_ARCS))
     print(f"node-arc incidence matrix: {A.shape[0]} nodes x {A.shape[1]} arcs")
     print(f"every column has one +1 and one -1: "
           f"{all(sorted(A[:, k]).count(1.0) == 1 for k in range(A.shape[1]))}")
-    tu, checked, bad = is_totally_unimodular(A, max_order=4)
+    tu, checked = is_totally_unimodular(A, max_order=4)
     print(f"square submatrices checked up to order 4 : {checked}")
     print(f"all determinants in {{0, +1, -1}}          : {tu}")
 
-    # A matrix that is NOT TU, for contrast: the TSP subtour system
     print("\ncontrast, a matrix that is not totally unimodular:")
     B = np.array([[1.0, 1.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 1.0]])
     print(f"  odd cycle incidence matrix, det = {np.linalg.det(B):.1f} "
           f"-> outside {{0, +1, -1}}, so not TU")
 
-    # ---------------- Problem 3 ----------------
     rule("PROBLEM 3: TRAVELLING SALESMAN, DFJ (slides 28-34)")
     cities = sorted(TSP_COORDS)
     dist = euclidean(TSP_COORDS)
@@ -351,10 +253,9 @@ if __name__ == "__main__":
     print(f"fractional edge values in that LP: "
           f"{ {k: round(v, 3) for k, v in frac.items()} or 'none'}")
 
-    # ---------------- Problem 4 ----------------
     rule("PROBLEM 4: FACILITY LOCATION (slides 36-38)")
     F, C = sorted(FL_OPEN), sorted({j for (_, j) in FL_SERVE})
-    obj, opened, assign, *_ = facility_location(F, C, FL_OPEN, FL_SERVE)
+    obj, opened, assign = facility_location(F, C, FL_OPEN, FL_SERVE)
     print(f"single-level MIP : cost {obj:.1f}, open {opened}")
     print(f"assignment       : {assign}")
 
@@ -369,8 +270,8 @@ if __name__ == "__main__":
         print("  note: alternative optima. The single-level MIP is exact in")
         print("  VALUE, not in which optimal solution it returns.")
 
-    strong = facility_location_lp_bound(F, C, FL_OPEN, FL_SERVE, strong=True)
-    weak = facility_location_lp_bound(F, C, FL_OPEN, FL_SERVE, strong=False)
+    strong = facility_location(F, C, FL_OPEN, FL_SERVE, strong=True, relax=True)[0]
+    weak = facility_location(F, C, FL_OPEN, FL_SERVE, strong=False, relax=True)[0]
     print(f"\nLP bound, disaggregated links x_ij <= y_i : {strong:.4f}")
     print(f"LP bound, aggregated link                 : {weak:.4f}")
     print(f"integer optimum                           : {obj:.4f}")

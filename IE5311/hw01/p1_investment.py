@@ -1,63 +1,13 @@
-"""
-IE 5311 Homework, Problem 1 [20 pts]: Maya's investment plan.
-
-    Maya has $5,000 to invest over five years. At the beginning of each
-    year she may place money into one-year or two-year time deposits at
-    Frontier Bank. One-year deposits earn 4% per year; two-year deposits
-    pay 9% total over their two-year term. Starting at the beginning of
-    Year 2, Pioneer Finance offers a three-year certificate paying 15%
-    total over three years. Maya reinvests any funds that mature each
-    year. Maximize cash on hand at the end of Year 5.
-
-TIME CONVENTION
-    Period t = 1..5 indexes the BEGINNING of year t. t = 6 is the end of
-    Year 5, which is when the objective is measured. An instrument of
-    term L started at t matures at t + L, and is available only if
-    t + L <= 6.
-
-SETS
-    T  = {1,...,5}          decision epochs (beginnings of years)
-    K  = {1, 2, 3}          instrument terms in years
-    A  = {(t,k) : instrument of term k may be started at epoch t}
-
-PARAMETERS
-    L_k     term of instrument k, in years
-    r_k     total return multiplier of instrument k over its full term
-              r_1 = 1.04, r_2 = 1.09, r_3 = 1.15
-    a_k     first epoch at which instrument k may be started
-              a_1 = a_2 = 1, a_3 = 2   (Pioneer opens at the start of Yr 2)
-    B       initial endowment, $5,000
-    H       horizon epoch, 6
-
-DECISION VARIABLES
-    x_{t,k} >= 0   dollars placed at epoch t into an instrument of term k
-    w_t     >= 0   dollars held idle from epoch t to epoch t+1
-
-MODEL
-    max   sum over (t,k) with t + L_k = H of  r_k x_{t,k}   +  w_5
-    s.t.  sum_k x_{1,k} + w_1 = B
-          sum_k x_{t,k} + w_t
-              = sum over (s,k) with s + L_k = t of r_k x_{s,k} + w_{t-1}
-                                                          for t = 2..5
-          x_{t,k} >= 0,  w_t >= 0
-
-The idle-cash variables w_t are included so the model does not assume
-full reinvestment. Every instrument earns a positive return, so I expect
-them all to be zero; leaving them in makes that a result rather than an
-assumption.
-"""
-
 import gurobipy as gp
 from gurobipy import GRB
 
 B = 5000.0
-H = 6                                   # end of Year 5
-TERM = {1: 1, 2: 2, 3: 3}               # L_k
-RET = {1: 1.04, 2: 1.09, 3: 1.15}       # r_k, total over the full term
-FIRST = {1: 1, 2: 1, 3: 2}              # a_k
-EPOCHS = range(1, 6)                    # t = 1..5
+H = 6
+TERM = {1: 1, 2: 2, 3: 3}
+RET = {1: 1.04, 2: 1.09, 3: 1.15}
+FIRST = {1: 1, 2: 1, 3: 2}
+EPOCHS = range(1, 6)
 
-# A = feasible (epoch, instrument) pairs
 A = [(t, k) for t in EPOCHS for k in TERM
      if t >= FIRST[k] and t + TERM[k] <= H]
 
@@ -69,21 +19,17 @@ def solve(verbose=True):
     x = m.addVars(A, lb=0.0, name="x")
     w = m.addVars(EPOCHS, lb=0.0, name="w")
 
-    # objective: everything maturing exactly at the horizon, plus idle cash
     m.setObjective(
         gp.quicksum(RET[k] * x[t, k] for (t, k) in A if t + TERM[k] == H)
         + w[5], GRB.MAXIMIZE)
 
-    # epoch 1: the endowment is allocated
-    m.addConstr(gp.quicksum(x[1, k] for (t, k) in A if t == 1) + w[1] == B,
-                name="balance_1")
+    m.addConstr(x.sum(1, "*") + w[1] == B, name="balance_1")
 
-    # epochs 2..5: what matures now, plus carried cash, is reallocated
     for t in range(2, 6):
         matured = gp.quicksum(RET[k] * x[s, k] for (s, k) in A
                               if s + TERM[k] == t)
-        m.addConstr(gp.quicksum(x[t, k] for (u, k) in A if u == t) + w[t]
-                    == matured + w[t - 1], name=f"balance_{t}")
+        m.addConstr(x.sum(t, "*") + w[t] == matured + w[t - 1],
+                    name=f"balance_{t}")
 
     m.optimize()
     assert m.Status == GRB.OPTIMAL, m.Status
