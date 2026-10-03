@@ -1,0 +1,1301 @@
+%=======================================================================
+%  IE 5311-001 (D01) Principles of Optimization
+%  Homework 02 solutions
+%
+%  Packages used: geometry, amsmath, amssymb, amsthm, booktabs, array.
+%  All ship with Overleaf and with a full TeX Live install.
+%=======================================================================
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{booktabs}
+\usepackage{array}
+
+\DeclareMathOperator*{\minimize}{min}
+\DeclareMathOperator*{\maximize}{max}
+\DeclareMathOperator{\CVaR}{CVaR}
+\DeclareMathOperator{\VaR}{VaR}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\conv}{conv}
+\DeclareMathOperator{\ext}{ext}
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{definition}
+\newtheorem{remark}{Remark}
+
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+%=======================================================================
+\begin{center}
+  {\large IE 5311-001 (D01) Principles of Optimization}\\[4pt]
+  Lidivine Kengne\\[2pt]
+  Homework 02
+\end{center}
+\vspace{0.6em}
+
+%=======================================================================
+\section*{0.\quad Common model}
+%=======================================================================
+
+Problems 1 to 3 share one setting, so it is stated once here and reused.
+
+\subsection*{0.1\quad Sets}
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Symbol & Definition \\
+\midrule
+$N = \{1,\dots,n\}$ & Products, indexed by $i$ \\
+$\Xi \subseteq \mathbb{R}^n_+$ & Support of the demand vector, a polytope,
+   $\Xi = \supp(P)$ \\
+$\ext(\Xi) = \{v^1,\dots,v^K\}$ & Extreme points of $\Xi$, indexed by $k$ \\
+$M = \{1,\dots,m\}$ & Sample indices in the SAA, indexed by $j$ \\
+$S = \{1,\dots,|S|\}$ & Scenario indices when $\Xi$ is finite, indexed by $s$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{0.2\quad Parameters}
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Symbol & Definition & Units \\
+\midrule
+$h_i \ge 0$ & Holding cost per leftover unit of product $i$ & \$/unit \\
+$b_i \ge 0$ & Backlog cost per unsatisfied unit of product $i$ & \$/unit \\
+$c_i = 0$   & Purchasing cost, assumed zero throughout & \$/unit \\
+$\rho \in (0,1)$ & Half-width of the order-to-demand band & dimensionless \\
+$\beta \in (0,1)$ & Confidence level of the risk measure & dimensionless \\
+$p_s > 0$ & Probability of scenario $s$, $\sum_{s} p_s = 1$ & dimensionless \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{0.3\quad Random element and decision variables}
+
+\[
+  \xi \in \Xi \subseteq \mathbb{R}^n_+ ,\quad \xi \sim P
+  \qquad\text{(demand, units; observed after $x$ is chosen)}
+\]
+\[
+  x_i \ge 0 \;=\; \text{order quantity of product } i \quad [\text{units}],
+  \qquad i \in N .
+\]
+
+Auxiliary variables are introduced only where a reformulation needs them,
+and are named at that point.
+
+\subsection*{0.4\quad Cost function}
+
+For an order $x$ and a realised demand $\xi$,
+\begin{equation}
+  f(x,\xi) \;=\; \sum_{i \in N}
+    \Big[\, h_i\,(x_i - \xi_i)^{+} \;+\; b_i\,(\xi_i - x_i)^{+} \,\Big],
+  \qquad (a)^{+} := \max\{a,0\}.
+  \label{eq:cost}
+\end{equation}
+Since $c = 0$, no purchasing term appears. In compact vector form, with
+$\odot$ the componentwise product and $\mathbf{1}$ the all-ones vector,
+\[
+  f(x,\xi) \;=\; \mathbf{1}^{\!\top}
+    \Big[\, h \odot (x-\xi)^{+} + b \odot (\xi-x)^{+} \Big].
+\]
+
+Two structural facts are used repeatedly and are recorded now.
+
+\begin{lemma}[Pointwise identity]
+\label{lem:identity}
+For any $h,b \ge 0$ and any $u \in \mathbb{R}$,
+\[
+  h\,(u)^{+} + b\,(-u)^{+} \;=\; \max\{\,h u,\; -b u\,\}.
+\]
+\end{lemma}
+
+\begin{proof}
+If $u \ge 0$ then the left side is $hu$, while $hu \ge 0 \ge -bu$, so the
+right side is also $hu$. If $u < 0$ then the left side is $-bu$, while
+$-bu \ge 0 \ge hu$, so the right side is also $-bu$. The two cases are
+exhaustive.
+\end{proof}
+
+Applying Lemma~\ref{lem:identity} coordinatewise with $u = x_i - \xi_i$,
+\begin{equation}
+  f(x,\xi) \;=\; \sum_{i \in N}
+    \max\big\{\, h_i (x_i - \xi_i),\; b_i(\xi_i - x_i) \,\big\}.
+  \label{eq:costmax}
+\end{equation}
+This is the form every linearisation in this homework starts from. Note
+also that each summand is nonnegative, so $f(x,\xi) \ge 0$ always.
+
+\begin{lemma}[Convexity in each argument]
+\label{lem:convex}
+$f(\cdot,\xi)$ is convex in $x$ for fixed $\xi$, and $f(x,\cdot)$ is
+convex in $\xi$ for fixed $x$. Both are piecewise linear.
+\end{lemma}
+
+\begin{proof}
+By \eqref{eq:costmax} each summand is the maximum of two affine
+functions, of $x$ for fixed $\xi$ and of $\xi$ for fixed $x$. A maximum
+of finitely many affine functions is convex and piecewise linear, and a
+sum of convex functions is convex.
+\end{proof}
+
+Convexity in $\xi$ is what makes Problem 2 finite. Convexity in $x$ is
+what makes every model below a convex program.
+
+%=======================================================================
+\newpage
+\section*{Problem 1.\quad Stochastic Multidimensional Newsvendor
+  \quad[25 pts]}
+%=======================================================================
+
+\subsection*{1.1\quad(Part 1) The stochastic model}
+
+No reformulation is performed; the expectation and the positive parts are
+left as they stand.
+\begin{align}
+  \minimize_{x} \quad & \mathbb{E}_{P}\big[\, f(x,\xi) \,\big]
+    \;=\; \mathbb{E}_{P}\!\left[\, \sum_{i \in N}
+      \Big( h_i (x_i - \xi_i)^{+} + b_i (\xi_i - x_i)^{+} \Big) \right] \\
+  \text{s.t.}\quad & x_i \ge 0 \qquad \forall\, i \in N .
+\end{align}
+
+This is a single-stage problem: $x$ is chosen before $\xi$ is observed and
+there is no recourse decision. The randomness enters the objective only.
+
+\subsection*{1.2\quad(Part 2) Sample average approximation}
+
+Draw $\xi^1,\dots,\xi^m$ independently from $P$ and replace the
+expectation by the empirical mean over the sample:
+\begin{align}
+  \minimize_{x \ge 0} \quad
+    & \frac{1}{m} \sum_{j \in M} f(x,\xi^{j})
+    \;=\; \frac{1}{m} \sum_{j \in M} \sum_{i \in N}
+      \max\big\{ h_i (x_i - \xi^{j}_i),\; b_i(\xi^{j}_i - x_i) \big\}.
+\end{align}
+
+Using \eqref{eq:costmax}, introduce $t^{j}_i \in \mathbb{R}$ for the inner
+maximum of product $i$ in sample $j$. The SAA problem is the linear
+program
+\begin{align}
+  \minimize_{x,\,t} \quad & \frac{1}{m} \sum_{j \in M} \sum_{i \in N}
+    t^{j}_i \\
+  \text{s.t.}\quad
+    & t^{j}_i \;\ge\; h_i\,(x_i - \xi^{j}_i)
+      && \forall\, i \in N,\; j \in M \\
+    & t^{j}_i \;\ge\; b_i\,(\xi^{j}_i - x_i)
+      && \forall\, i \in N,\; j \in M \\
+    & x_i \ge 0 && \forall\, i \in N .
+\end{align}
+Size: $n + nm$ variables and $2nm$ structural rows. The linearisation is
+exact because the objective is being minimised and each $t^{j}_i$ is
+pushed down to the larger of its two lower bounds.
+
+\begin{remark}
+The SAA optimal value is the \emph{in-sample} average at the \emph{same}
+sample that defined it, so it is optimistically biased downward. The
+honest out-of-sample number is $\mathbb{E}_P[f(\hat{x}_m,\xi)]$ evaluated
+at the SAA solution $\hat{x}_m$. Section~1.7 reports both.
+\end{remark}
+
+\subsection*{1.3\quad(Part 3a) Physical meaning of the band constraint}
+
+The additional constraint is
+\begin{equation}
+  (1-\rho)\,\xi_i \;\le\; x_i \;\le\; (1+\rho)\,\xi_i
+  \qquad \forall\, i \in N .
+  \label{eq:band}
+\end{equation}
+
+Read one product at a time. The upper bound says the order may exceed
+demand by at most a fraction $\rho$: it caps deliberate over-stocking, and
+therefore caps waste and the capital tied up in leftovers. The lower bound
+says the order may fall short of demand by at most a fraction $\rho$: it
+is a service-level floor, guaranteeing that at least a fraction $1-\rho$
+of demand is covered from stock. Together they force the order to track
+demand within a relative tolerance band of half-width $\rho$, so $\rho$ is
+a dimensionless mismatch tolerance. At $\rho \to 0$ the order must equal
+demand exactly; at $\rho \to 1$ the lower bound disappears and the upper
+bound allows ordering twice the demand.
+
+The important subtlety is one of timing. The vector $x$ is a here-and-now
+decision, fixed before $\xi$ is seen, while \eqref{eq:band} refers to the
+realised $\xi$. A single deterministic $x$ cannot adapt to the
+realisation, so the constraint can only be imposed in a probabilistic
+sense. That is what Part 3b makes precise and what Part 3c then collapses.
+
+\subsection*{1.4\quad(Part 3b) The constrained stochastic model}
+
+Requiring the band to hold almost surely under $P$,
+\begin{align}
+  \minimize_{x} \quad & \mathbb{E}_{P}\big[ f(x,\xi) \big] \\
+  \text{s.t.}\quad
+    & (1-\rho)\,\xi_i \le x_i \le (1+\rho)\,\xi_i
+      \quad \forall\, i \in N, \qquad P\text{-a.e.} \\
+    & x_i \ge 0 \qquad \forall\, i \in N ,
+\end{align}
+where the probability constraint means
+\[
+  P\Big( \big\{ \xi \in \Xi :\;
+    (1-\rho)\xi_i \le x_i \le (1+\rho)\xi_i \;\;\forall i \in N \big\} \Big)
+  \;=\; 1 .
+\]
+
+\subsection*{1.5\quad(Part 3c) The a.e.\ constraint is a robust constraint}
+
+\begin{proposition}
+\label{prop:aerobust}
+Let $\Xi = \supp(P)$ be compact and let $x \in \mathbb{R}^n_+$ be fixed.
+The following are equivalent.
+\begin{enumerate}
+  \item[(i)] \eqref{eq:band} holds $P$-a.e.
+  \item[(ii)] \eqref{eq:band} holds for every $\xi \in \Xi$.
+  \item[(iii)] For every $i \in N$,
+    \[
+      x_i \;\le\; (1+\rho)\,\min_{\xi \in \Xi} \xi_i
+      \qquad\text{and}\qquad
+      x_i \;\ge\; (1-\rho)\,\max_{\xi \in \Xi} \xi_i .
+    \]
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+\textbf{(ii) $\Rightarrow$ (i).} Since $\Xi = \supp(P)$ we have
+$P(\Xi) = 1$. If the band holds at every point of $\Xi$, the violation set
+is contained in $\Xi^{c}$, which has probability zero.
+
+\textbf{(i) $\Rightarrow$ (ii).} Suppose the band holds $P$-a.e.\ but
+fails at some $\bar\xi \in \Xi$. Two cases.
+
+Upper bound violated: there is $i$ with $x_i > (1+\rho)\bar\xi_i$. Define
+$g(\xi) := x_i - (1+\rho)\xi_i$, which is affine and therefore continuous
+in $\xi$, and satisfies $g(\bar\xi) > 0$. By continuity there is
+$\epsilon > 0$ with $g(\xi) > 0$ for all $\xi \in B_\epsilon(\bar\xi)$.
+Because $\bar\xi \in \supp(P)$, every ball centred at $\bar\xi$ has
+positive measure, so $P(B_\epsilon(\bar\xi)) > 0$. Every point of
+$B_\epsilon(\bar\xi)$ violates the band, so the violation set has positive
+probability, contradicting (i).
+
+Lower bound violated: there is $i$ with $x_i < (1-\rho)\bar\xi_i$. Apply
+the same argument to $\tilde g(\xi) := (1-\rho)\xi_i - x_i$, again affine
+and continuous with $\tilde g(\bar\xi) > 0$.
+
+Hence no such $\bar\xi$ exists and the band holds on all of $\Xi$.
+
+\textbf{(ii) $\Leftrightarrow$ (iii).} Fix $i$. The requirement
+$x_i \le (1+\rho)\xi_i$ for every $\xi \in \Xi$ is equivalent to
+$x_i \le \inf_{\xi \in \Xi} (1+\rho)\xi_i$. Since $1+\rho > 0$ and $\Xi$
+is a compact polytope, the infimum is attained and equals
+$(1+\rho)\min_{\xi\in\Xi}\xi_i$. Likewise $x_i \ge (1-\rho)\xi_i$ for
+every $\xi \in \Xi$ is equivalent to
+$x_i \ge \sup_{\xi\in\Xi}(1-\rho)\xi_i = (1-\rho)\max_{\xi\in\Xi}\xi_i$,
+where the direction of the inequality is preserved because
+$1-\rho > 0$ for $\rho \in (0,1)$.
+\end{proof}
+
+Write $\underline{\xi}_i := \min_{\xi \in \Xi}\xi_i$ and
+$\overline{\xi}_i := \max_{\xi \in \Xi}\xi_i$. Each is the optimal value of
+a linear program over the polytope $\Xi$, so both are computable. The
+constrained model becomes a finitely constrained problem:
+\begin{align}
+  \minimize_{x \ge 0} \quad & \mathbb{E}_{P}\big[ f(x,\xi) \big] \\
+  \text{s.t.}\quad
+    & (1-\rho)\,\overline{\xi}_i \;\le\; x_i \;\le\;
+      (1+\rho)\,\underline{\xi}_i \qquad \forall\, i \in N .
+  \label{eq:bandfinite}
+\end{align}
+
+\begin{remark}[When the band is empty]
+\label{rem:feas}
+Constraint \eqref{eq:bandfinite} is consistent for product $i$ if and only
+if $(1-\rho)\overline{\xi}_i \le (1+\rho)\underline{\xi}_i$, that is
+\begin{equation}
+  \rho \;\ge\; \rho^{*}_i \;:=\;
+  \frac{\overline{\xi}_i - \underline{\xi}_i}
+       {\overline{\xi}_i + \underline{\xi}_i},
+  \qquad\text{and the model is feasible iff }
+  \rho \ge \max_{i \in N} \rho^{*}_i .
+\end{equation}
+This is the price of insisting on an almost-sure constraint with a
+here-and-now decision: if the band is narrower than the spread of demand
+it has to cover, no order quantity works at all. Section~1.7 confirms the
+threshold numerically.
+\end{remark}
+
+\subsection*{1.6\quad(Part 3d) Comment}
+
+No answer required. The point stands: an uncertain constraint required to
+hold almost surely is a robust constraint in disguise, and the two usual
+escapes are to relax it into a chance constraint, or to add second-stage
+recourse so feasibility can be restored after $\xi$ is seen.
+
+\subsection*{1.7\quad Classification and numerical check}
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Question (taxonomy, slides 8--10) & Answer for the SAA model \\
+\midrule
+Constrained?                & Yes \\
+Variable type and size      & Continuous, $n + nm$ \\
+Objective type              & Linear after the epigraph split;
+                              piecewise linear convex before it \\
+Constraint type and size    & Linear, $2nm$ rows \\
+Parameters                  & Stochastic, distribution $P$ \\
+Stages and players          & Single stage, one player \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+A test instance with $n = 3$, independent uniform marginals on the box
+$\prod_i [\underline{\xi}_i,\overline{\xi}_i]$, zero purchase cost and
+\[
+  h = (1.0,\,2.0,\,1.5), \qquad b = (4.0,\,3.0,\,5.0), \qquad
+  \underline{\xi} = (10,5,8), \qquad \overline{\xi} = (30,25,20),
+\]
+admits a closed-form optimum. With $c=0$ the first-order condition for
+product $i$ is $(h_i+b_i)F_i(x_i) = b_i$, so the critical fractile is
+$F_i(x^{*}_i) = b_i/(b_i+h_i)$ and, for a uniform marginal,
+\[
+  x^{*}_i = \underline{\xi}_i
+    + (\overline{\xi}_i - \underline{\xi}_i)\frac{b_i}{b_i+h_i},
+  \qquad
+  \mathbb{E}_P[f(x^{*},\xi)]
+    = \sum_{i \in N}
+      \frac{(\overline{\xi}_i-\underline{\xi}_i)\,h_i b_i}{2(h_i+b_i)} .
+\]
+This gives $x^{*} = (26.0,\,17.0,\,17.2308)$ and optimal expected cost
+$26.923077$. The SAA converges to it:
+
+\begin{center}
+\begin{tabular}{@{}rrrr@{}}
+\toprule
+$m$ & SAA value (in sample) & $\mathbb{E}_P[f(\hat x_m,\xi)]$ &
+  $\max_i |\hat x_{m,i} - x^{*}_i|$ \\
+\midrule
+50   & 24.2127 & 27.1680 & 0.9968 \\
+200  & 27.2641 & 27.0311 & 0.9180 \\
+1000 & 26.6339 & 26.9456 & 0.4228 \\
+3000 & 26.5452 & 26.9271 & 0.1090 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The downward bias of the in-sample column is visible at $m=50$, where the
+SAA value $24.21$ sits below the true optimum $26.92$; the out-of-sample
+column approaches the optimum from above, as it must.
+
+For the band, the box support gives $\underline{\xi} = (10,5,8)$ and
+$\overline{\xi} = (30,25,20)$, so
+$\rho^{*} = (0.5000,\,0.6667,\,0.4286)$ and the binding threshold is
+$\rho^{*}_2 = 2/3$. Solved at $m=1000$: the model is infeasible at
+$\rho = 0.3,\ 0.45,\ 0.6$ and at $\rho = 0.6666$, and becomes feasible at
+$\rho = 0.6668$ with value $51.8117$, against $26.5452$ unconstrained.
+The threshold predicted by Remark~\ref{rem:feas} is reproduced exactly.
+
+%=======================================================================
+\newpage
+\section*{Problem 2.\quad Robust Multidimensional Newsvendor
+  \quad[40 pts]}
+%=======================================================================
+
+\subsection*{2.1\quad(Part 1) The robust model}
+
+Replace the expectation by the worst case over the support:
+\begin{align}
+  \minimize_{x} \quad & \maximize_{\xi \in \Xi}\; f(x,\xi)
+    \;=\; \maximize_{\xi \in \Xi} \sum_{i\in N}
+      \Big( h_i(x_i-\xi_i)^{+} + b_i(\xi_i-x_i)^{+} \Big) \\
+  \text{s.t.}\quad & x_i \ge 0 \qquad \forall\, i \in N .
+\end{align}
+No reformulation is performed. As written the inner problem has infinitely
+many candidate $\xi$, so this is a semi-infinite program.
+
+\subsection*{2.2\quad(Part 2) An equivalent LP with finitely many rows}
+
+By Lemma~\ref{lem:convex}, $f(x,\cdot)$ is convex on the polytope $\Xi$. A
+convex function maximised over a polytope attains its maximum at an
+extreme point, so for every $x$
+\begin{equation}
+  \maximize_{\xi \in \Xi} f(x,\xi)
+  \;=\; \max_{k \in \{1,\dots,K\}} f(x, v^{k}),
+  \qquad \ext(\Xi) = \{v^1,\dots,v^K\}.
+  \label{eq:vertexmax}
+\end{equation}
+Introduce $\tau \in \mathbb{R}$ for the worst-case cost and
+$t^{k}_i \in \mathbb{R}$ for the inner maximum of product $i$ at vertex
+$k$, then use \eqref{eq:costmax}:
+\begin{align}
+  \minimize_{x,\,\tau,\,t} \quad & \tau \\
+  \text{s.t.}\quad
+    & \tau \;\ge\; \sum_{i \in N} t^{k}_i
+      && \forall\, k \in \{1,\dots,K\}
+      \label{eq:p2epi}\\
+    & t^{k}_i \;\ge\; h_i\,(x_i - v^{k}_i)
+      && \forall\, i \in N,\; k \in \{1,\dots,K\} \\
+    & t^{k}_i \;\ge\; b_i\,(v^{k}_i - x_i)
+      && \forall\, i \in N,\; k \in \{1,\dots,K\} \\
+    & x_i \ge 0 && \forall\, i \in N .
+\end{align}
+Size: $1 + n + nK$ variables and $K(2n+1)$ rows. Finite, and an LP.
+
+\subsection*{2.3\quad(Part 3) When the extreme points cannot be enumerated}
+
+$K$ is typically exponential in $n$, so \eqref{eq:p2epi} should be
+generated on demand rather than written out. Use delayed constraint
+generation.
+
+\textbf{Master.} Keep a working set $W \subseteq \ext(\Xi)$ and solve the
+LP of Section~2.2 restricted to $k \in W$. Dropping rows relaxes the
+problem, so the master value is a lower bound on the robust optimum,
+provided every element of $W$ is a genuine point of $\Xi$.
+
+\textbf{Subproblem (separation).} Given the master solution
+$(\hat x, \hat\tau)$, compute
+$\;\mu(\hat x) := \max_{\xi \in \Xi} f(\hat x, \xi)$. This is an upper
+bound on the robust optimum. If $\mu(\hat x) \le \hat\tau + \epsilon$,
+stop: no extreme point is violated and $\hat x$ is optimal. Otherwise add
+a maximiser to $W$ and re-solve.
+
+\textbf{Solving the subproblem.} It maximises a convex function over a
+polytope, which is NP-hard in general. Here the structure helps. Using
+\eqref{eq:costmax} and the fact that the per-product choices are
+independent,
+\[
+  \max_{\xi\in\Xi} \sum_{i\in N}
+     \max\{ h_i(\hat x_i - \xi_i),\, b_i(\xi_i - \hat x_i) \}
+  \;=\;
+  \max_{\sigma \in \{H,B\}^{n}} \;\; \max_{\xi \in \Xi}
+     \sum_{i \in N} \ell^{\sigma_i}_i(\xi),
+\]
+where $\ell^{H}_i(\xi) = h_i(\hat x_i-\xi_i)$ and
+$\ell^{B}_i(\xi) = b_i(\xi_i-\hat x_i)$ are affine. For each fixed sign
+pattern $\sigma$ the inner problem is a linear program over $\Xi$, whose
+optimum is attained at an extreme point. So the separation problem is
+$2^{n}$ linear programs, and the maximiser it returns is automatically an
+extreme point and therefore a legitimate cut. Equivalently, it is a single
+mixed-integer program with $n$ binaries,
+\[
+  \max \;\sum_i t_i \quad\text{s.t.}\quad
+  t_i \le h_i(\hat x_i-\xi_i) + Mz_i,\;\;
+  t_i \le b_i(\xi_i-\hat x_i) + M(1-z_i),\;\;
+  \xi \in \Xi,\; z \in \{0,1\}^n,
+\]
+which is the better choice once $2^{n}$ becomes large.
+
+\textbf{Termination.} $\ext(\Xi)$ is finite and each round adds a vertex
+not already in $W$, because a vertex already in $W$ satisfies its own row
+and cannot be strictly violated. So the loop stops after at most $K$
+rounds, and in practice far sooner.
+
+\begin{remark}[The seed must lie in $\Xi$]
+\label{rem:seed}
+Every element of $W$ must be a point of $\Xi$. Seeding with the
+componentwise minimum $\underline{\xi} = (\underline{\xi}_1,\dots,
+\underline{\xi}_n)$ is tempting and is wrong in general: each coordinate
+minimum is attained in $\Xi$, but the vector collecting them need not lie
+in $\Xi$ when the coordinates are coupled. Adding such a row makes the
+master a restriction rather than a relaxation, and the procedure converges
+to the wrong value. Section~2.9 reports an instance where this happens.
+\end{remark}
+
+\subsection*{2.4\quad(Part 4) The identity for $n=1$}
+
+\begin{proposition}
+For $h,b \ge 0$ and any $x,\xi \in \mathbb{R}$,
+\[
+  h(x-\xi)^{+} + b(\xi-x)^{+} \;=\; \max\{\, h(x-\xi),\; b(\xi-x) \,\}.
+\]
+\end{proposition}
+
+\begin{proof}
+This is Lemma~\ref{lem:identity} with $u = x-\xi$. Explicitly: if
+$x \ge \xi$ then $(x-\xi)^{+} = x-\xi$ and $(\xi-x)^{+} = 0$, so the left
+side is $h(x-\xi) \ge 0$, while $b(\xi-x) = -b(x-\xi) \le 0$, so the
+maximum on the right is also $h(x-\xi)$. If $x < \xi$ then
+$(x-\xi)^{+} = 0$ and $(\xi-x)^{+} = \xi-x$, so the left side is
+$b(\xi-x) \ge 0$, while $h(x-\xi) \le 0$, so the maximum is $b(\xi-x)$.
+The cases are exhaustive.
+\end{proof}
+
+The mechanism is that $x-\xi$ and $\xi-x$ have opposite signs, so with
+$h,b \ge 0$ at most one of the two linear pieces is positive and the other
+is nonpositive; adding the positive parts and taking the larger therefore
+give the same number.
+
+\subsection*{2.5\quad(Part 5) An alternative LP for $n=1$}
+
+For $n=1$ a polytope $\Xi \subset \mathbb{R}_+$ is a closed interval
+$[\underline{\xi},\overline{\xi}]$. Using the identity and exchanging the
+two maxima,
+\begin{align}
+  \max_{\xi \in [\underline{\xi},\overline{\xi}]} f(x,\xi)
+  &= \max_{\xi} \max\{ h(x-\xi),\, b(\xi-x) \} \notag\\
+  &= \max\Big\{ \max_{\xi} h(x-\xi), \;\; \max_{\xi} b(\xi-x) \Big\}
+  \;=\; \max\big\{ h(x-\underline{\xi}),\; b(\overline{\xi}-x) \big\},
+  \label{eq:n1swap}
+\end{align}
+because $h(x-\xi)$ is nonincreasing in $\xi$ and so is largest at
+$\xi = \underline{\xi}$, while $b(\xi-x)$ is nondecreasing in $\xi$ and so
+is largest at $\xi = \overline{\xi}$. The robust problem is therefore
+\begin{align}
+  \minimize_{x \ge 0,\ \tau} \quad & \tau \\
+  \text{s.t.}\quad & \tau \;\ge\; h\,(x - \underline{\xi}) \\
+                   & \tau \;\ge\; b\,(\overline{\xi} - x) .
+\end{align}
+Two variables, two rows. Both rows are active at the optimum, so equating
+them gives the closed form
+\begin{equation}
+  x^{*} = \frac{h\,\underline{\xi} + b\,\overline{\xi}}{h+b},
+  \qquad
+  \tau^{*} = \frac{h\,b\,(\overline{\xi}-\underline{\xi})}{h+b}.
+  \label{eq:n1closed}
+\end{equation}
+
+The robust order is a convex combination of the two extreme demands,
+weighted by the cost of the \emph{opposite} error: a large backlog cost
+$b$ pulls $x^{*}$ towards $\overline{\xi}$, a large holding cost $h$ pulls
+it towards $\underline{\xi}$. This is the robust counterpart of the
+stochastic critical fractile $b/(b+h)$, and for a uniform marginal the two
+coincide exactly, since
+$\underline{\xi} + (\overline{\xi}-\underline{\xi})\,b/(b+h)
+ = (h\underline{\xi} + b\overline{\xi})/(h+b)$.
+
+\subsection*{2.6\quad(Part 6) Comparing the two reformulations}
+
+\begin{center}
+\begin{tabular}{@{}lrrl@{}}
+\toprule
+Formulation & Variables & Rows & Mechanism \\
+\midrule
+Extreme point (Section 2.2), $n=1$ &
+  $1+n+nK = 4$ & $K(2n+1) = 6$ &
+  enumerate vertices, then linearise at each \\
+Identity based (Section 2.5) &
+  $2$ & $2$ &
+  resolve the inner maximum analytically \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The identity formulation is smaller, and the reason is structural rather
+than incidental. The extreme-point route first enumerates the vertices and
+only then linearises, paying one auxiliary variable $t^{k}_i$ and two rows
+for every (product, vertex) pair. The identity route exchanges the two
+maxima first, which lets each cost branch be sent to its own worst
+demand analytically; after that no vertex enumeration and no auxiliary
+variables are needed at all.
+
+\textbf{What the measurement actually shows.} At $n=1$ both problems are
+too small for the row count to matter. Measured on the instance of
+Section~2.9: $6$ rows and $4$ columns solving in $0.0047$ s against $2$
+rows and $2$ columns solving in $0.0042$ s, both returning
+$\tau^{*} = 16.0$ at $x^{*} = 26.0$, which also matches
+\eqref{eq:n1closed}. The difference is below timing noise, so the honest
+claim for $n=1$ is that the identity formulation is structurally smaller,
+not that it is measurably faster.
+
+\textbf{Where the gap does bite.} The same exchange of maxima works for
+any $n$ when $\Xi$ is a box $\prod_i[\underline{\xi}_i,\overline{\xi}_i]$,
+because the inner maximisation then separates across products:
+\begin{equation}
+  \max_{\xi \in \Xi} f(x,\xi)
+  = \sum_{i\in N} \max\big\{ h_i(x_i-\underline{\xi}_i),\;
+      b_i(\overline{\xi}_i-x_i) \big\}
+  \quad\Longrightarrow\quad
+  \begin{array}{l}
+    \min \sum_i \tau_i \\
+    \tau_i \ge h_i(x_i-\underline{\xi}_i) \\
+    \tau_i \ge b_i(\overline{\xi}_i-x_i)
+  \end{array}
+  \label{eq:boxsep}
+\end{equation}
+which is $2n$ rows, against $2^{n}$ vertices and $2^{n}(2n+1)$ rows for
+the enumeration. Measured, with both formulations returning the same
+optimal value at every size:
+
+\begin{center}
+\begin{tabular}{@{}rrrrrr@{}}
+\toprule
+$n$ & vertices $2^n$ & vertex rows & vertex solve (s) &
+  identity rows & identity solve (s) \\
+\midrule
+2  & 4     & 20      & 0.004  & 4  & 0.004 \\
+4  & 16    & 144     & 0.006  & 8  & 0.004 \\
+6  & 64    & 832     & 0.024  & 12 & 0.005 \\
+8  & 256   & 4\,352  & 0.161  & 16 & 0.006 \\
+10 & 1\,024 & 21\,504 & 1.196  & 20 & 0.005 \\
+12 & 4\,096 & 102\,400 & 47.328 & 24 & 0.005 \\
+14 & 16\,384 & not built & --- & 28 & 0.006 \\
+16 & 65\,536 & not built & --- & 32 & 0.005 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Wall-clock timings are from one run on one machine and move by a few
+per cent between runs; the row counts do not. The identity formulation
+is flat in $n$ at this scale; the enumeration
+doubles with every additional product and was abandoned past $n=12$, where
+it already took $47.3$ s against $0.005$ s.
+
+\textbf{The caveat that matters.} The separation \eqref{eq:boxsep} is
+valid only when $\Xi$ is a box. For a general polytope the coordinates are
+coupled and no single $\xi \in \Xi$ need attain every coordinate's own
+worst extreme simultaneously, so \eqref{eq:boxsep} is then only an upper
+bound and the extreme-point formulation, or constraint generation, is
+required. Section~2.9 quantifies that gap on a coupled instance.
+
+\subsection*{2.7\quad(Part 7) The robust model with the band constraint}
+
+In a robust model the band is required over the whole uncertainty set by
+definition, so no almost-sure argument is needed:
+\begin{align}
+  \minimize_{x \ge 0} \quad & \maximize_{\xi\in\Xi} f(x,\xi) \\
+  \text{s.t.}\quad
+    & (1-\rho)\,\xi_i \;\le\; x_i \;\le\; (1+\rho)\,\xi_i
+      \qquad \forall\, i \in N,\; \forall\, \xi \in \Xi .
+\end{align}
+
+\subsection*{2.8\quad(Part 8) Yes, and here it is}
+
+Both semi-infinite pieces reduce, for different reasons.
+
+\emph{Objective.} $f(x,\cdot)$ is convex, so by \eqref{eq:vertexmax} the
+worst case is attained at an extreme point and the objective needs only
+the $K(2n+1)$ rows of Section~2.2.
+
+\emph{Band.} For each $i$ the band is \emph{affine} in $\xi$, so its worst
+case over $\Xi$ is attained at an extreme point as well, and by the same
+computation as Proposition~\ref{prop:aerobust}(iii) it reduces to two
+rows per product:
+\[
+  x_i \;\le\; (1+\rho)\,\underline{\xi}_i,
+  \qquad
+  x_i \;\ge\; (1-\rho)\,\overline{\xi}_i,
+  \qquad
+  \underline{\xi}_i = \min_{\xi\in\Xi}\xi_i, \;\;
+  \overline{\xi}_i = \max_{\xi\in\Xi}\xi_i .
+\]
+Each bound is the value of one linear program over $\Xi$. The full finite
+reformulation is
+\begin{align}
+  \minimize_{x,\tau,t} \quad & \tau \\
+  \text{s.t.}\quad
+    & \tau \ge \sum_{i\in N} t^{k}_i && \forall\, k \\
+    & t^{k}_i \ge h_i(x_i - v^{k}_i),\quad
+      t^{k}_i \ge b_i(v^{k}_i - x_i) && \forall\, i,\,k \\
+    & (1-\rho)\,\overline{\xi}_i \;\le\; x_i \;\le\;
+      (1+\rho)\,\underline{\xi}_i && \forall\, i \in N \\
+    & x_i \ge 0 && \forall\, i \in N ,
+\end{align}
+with $K(2n+1) + 2n$ rows. The band therefore costs only $2n$ extra rows,
+independent of $K$, and it is feasible under exactly the condition of
+Remark~\ref{rem:feas}.
+
+\subsection*{2.9\quad Classification and numerical results}
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Question (taxonomy, slides 8--10) & Answer for the extreme-point LP \\
+\midrule
+Constrained?             & Yes \\
+Variable type and size   & Continuous, $1+n+nK$ \\
+Objective type           & Linear \\
+Constraint type and size & Linear, $K(2n+1)$ rows, $+2n$ with the band \\
+Parameters               & Deterministic set $\Xi$; no distribution is used \\
+Stages and players       & Single stage, two players: the decision maker
+                           minimises, nature maximises over $\Xi$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Same $h, b$ as Problem 1, with a genuinely coupled support
+\[
+  \Xi = \Big\{ \xi :\; (10,5,8) \le \xi \le (30,25,20), \;\;
+    45 \le \textstyle\sum_i \xi_i \le 60 \Big\},
+\]
+whose extreme points number $K = 12$. Results:
+
+\begin{center}
+\begin{tabular}{@{}lr@{}}
+\toprule
+Quantity & Value \\
+\midrule
+Robust optimal worst-case cost & $46.246154$ \\
+Robust order quantity $x$ & $(30.0,\; 21.2,\; 19.2308)$ \\
+LP size & $84$ rows ($=K(2n+1)$), $40$ columns \\
+Separable box bound on the coordinate ranges & $53.846154$ \\
+Value of the coupling & $7.600000$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The box bound overstates the worst case by $7.6$, because no single
+$\xi\in\Xi$ can sit at every coordinate's own worst extreme at once. This
+is the quantitative form of the caveat in Section~2.6.
+
+\textbf{An observation worth recording.} If the lower total row is dropped
+and only $\sum_i \xi_i \le 60$ is kept, the robust value equals the
+separable box bound exactly ($53.846154$ both ways). The reason is that an
+upper total row never binds at the robust optimum: the adversary's
+cheapest retreat is the componentwise minimum $\underline{\xi}$, and if
+$\Xi$ is nonempty then $\sum_i \underline{\xi}_i \le \sum_i \xi_i \le 60$,
+so that retreat is always feasible. Only a \emph{lower} total row, which
+forbids the retreat, makes the coupling bite. This also supplies the
+counterexample promised in Remark~\ref{rem:seed}: here
+$\underline{\xi} = (10,5,8)$ has total $23 < 45$ and is \emph{not} a point
+of $\Xi$.
+
+\textbf{Constraint generation.} Seeded at a genuine vertex of $\Xi$:
+
+\begin{center}
+\begin{tabular}{@{}rrrr@{}}
+\toprule
+Round & $|W|$ & Master (lower bound) & Separation (upper bound) \\
+\midrule
+1 & 1 & $0.000000$  & $135.000000$ \\
+2 & 2 & $41.000000$ & $57.000000$ \\
+3 & 3 & $43.707692$ & $54.707690$ \\
+4 & 4 & $46.246154$ & $46.246155$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Four rounds, four of the twelve vertices ever added, and the same optimal
+value as the full LP. Seeding instead at the componentwise minimum, which
+is not in $\Xi$, converges to $53.107692$, a value \emph{above} the true
+optimum, which is the signature of a master that has stopped being a
+relaxation.
+
+\textbf{The band.} With $\underline\xi = (10,5,8)$ and
+$\overline\xi = (30,25,20)$ over $\Xi$, $\rho^{*} = (0.5,\,0.6667,\,
+0.4286)$ and the threshold is $2/3$. Infeasible at $\rho = 0.4$ and at
+$\rho = 0.6666$; feasible at $\rho = 0.6668$ with worst-case cost
+$100.2515$, falling to $98.6154$ at $\rho = 0.70$, $91.5192$ at
+$\rho=0.85$ and $85.0$ at $\rho = 1.0$, against $46.2462$ unconstrained.
+The cost is decreasing in $\rho$, as it must be, since enlarging $\rho$
+enlarges the feasible set.
+
+\textbf{The identity, guarded numerically.} Over $200{,}000$ random
+$(h,b,x,\xi)$ with $h,b \ge 0$, the largest discrepancy between the two
+sides of Section~2.4 was $0$ to machine precision. The proof is the
+case analysis; this only guards against a transcription slip.
+
+%=======================================================================
+\newpage
+\section*{Problem 3.\quad CVaR Multidimensional Newsvendor
+  \quad[15 pts, plus 5 extra]}
+%=======================================================================
+
+Throughout this problem $\Xi$ has finite support,
+$\supp(P) = \{\xi^1,\dots,\xi^{|S|}\}$ with $P(\xi = \xi^s) = p_s > 0$.
+
+\subsection*{3.1\quad(Part 1) The CVaR model}
+
+For a loss $Z$ and level $\beta \in (0,1)$, write
+$\VaR_\beta(Z) = \inf\{\eta : P(Z \le \eta) \ge \beta\}$ and let
+$\CVaR_\beta(Z)$ be the mean of the worst $1-\beta$ tail of $Z$. The model,
+with no reformulation performed, is
+\begin{align}
+  \minimize_{x} \quad & \CVaR_\beta\big[\, f(x,\xi) \,\big] \\
+  \text{s.t.}\quad & x_i \ge 0 \qquad \forall\, i \in N .
+\end{align}
+Replacing $\mathbb{E}_P$ by $\CVaR_\beta$ changes what is being optimised,
+not the decision structure: this is still a single-stage here-and-now
+problem.
+
+\subsection*{3.2\quad(Part 2) Epigraph reformulation and a
+  master--subproblem scheme}
+
+\textbf{Epigraph form.} By the Rockafellar--Uryasev representation,
+\begin{equation}
+  \CVaR_\beta(Z) \;=\; \min_{\eta \in \mathbb{R}}
+    \Big\{\, \eta + \frac{1}{1-\beta}\,
+      \mathbb{E}\big[(Z-\eta)^{+}\big] \Big\},
+  \label{eq:ru}
+\end{equation}
+and the minimising $\eta$ is $\VaR_\beta(Z)$. Since the outer problem also
+minimises, the two minimisations merge. Introducing
+$u_s \ge 0$ for $(f(x,\xi^s)-\eta)^{+}$ and $t^{s}_i$ for the inner
+maximum of \eqref{eq:costmax}:
+\begin{align}
+  \minimize_{x,\eta,u,t} \quad
+    & \eta + \frac{1}{1-\beta} \sum_{s \in S} p_s\, u_s \\
+  \text{s.t.}\quad
+    & u_s \;\ge\; \sum_{i\in N} t^{s}_i \;-\; \eta && \forall\, s \in S \\
+    & t^{s}_i \ge h_i(x_i - \xi^{s}_i),\quad
+      t^{s}_i \ge b_i(\xi^{s}_i - x_i) && \forall\, i \in N,\; s \in S \\
+    & u_s \ge 0,\quad x_i \ge 0 && \forall\, i \in N,\; s \in S .
+\end{align}
+This is a linear program with $1 + n + |S| + n|S|$ variables and
+$|S|(2n+1)$ rows.
+
+\textbf{Master--subproblem.} When $|S|$ is large, generate the scenario
+rows on demand.
+
+\emph{Master.} For a working set $W \subseteq S$, solve the LP above with
+$s$ restricted to $W$. Dropping a scenario removes a nonnegative term
+$p_s u_s/(1-\beta)$ from the objective, so the master value is a lower
+bound.
+
+\emph{Subproblem.} At the master solution $(\hat x, \hat\eta)$, evaluate
+$f(\hat x, \xi^{s})$ for all $s \in S$ and form the true objective
+\[
+  \mathrm{UB} \;=\; \hat\eta + \frac{1}{1-\beta}
+    \sum_{s \in S} p_s\,\big(f(\hat x,\xi^{s}) - \hat\eta\big)^{+},
+\]
+which upper-bounds the optimum by \eqref{eq:ru}. Stop when
+$\mathrm{UB} - \mathrm{LB} \le \epsilon$; otherwise add to $W$ the
+scenarios with the largest positive violation
+$(f(\hat x,\xi^{s}) - \hat\eta)^{+}$ and re-solve. $S$ is finite and each
+round adds at least one new index, so the scheme terminates.
+
+\emph{Why it is efficient.} At the optimum $\hat\eta = \VaR_\beta$, so
+every scenario with cost below $\hat\eta$ has $u_s = 0$ and contributes
+nothing. Only the $(1-\beta)$ tail is active, and a working set of roughly
+that size reproduces the full answer.
+
+\begin{remark}[The master needs a lower bound on $\eta$]
+\label{rem:unbdd}
+Reducing $\eta$ by $\delta$ changes the master objective by
+$-\delta\big(1 - \sum_{s\in W} p_s/(1-\beta)\big)$. So the master is
+\emph{unbounded below} whenever the working set carries less than
+$1-\beta$ of the probability mass, which is exactly the situation at the
+start. Since $f \ge 0$ we have $\VaR_\beta(f) \ge 0$, so adding the valid
+bound $\eta \ge 0$ repairs it without cutting off the optimum. This is not
+an implementation detail: a naive scenario-dropping relaxation of
+\eqref{eq:ru} has no finite value until $W$ reaches the tail mass.
+\end{remark}
+
+\subsection*{3.3\quad(Part 3, extra credit) Dualising the inner problem}
+
+CVaR has the risk-envelope representation
+\begin{equation}
+  \CVaR_\beta(Z) \;=\; \max_{q \in \mathcal{Q}}\; \sum_{s\in S} q_s Z_s,
+  \qquad
+  \mathcal{Q} = \Big\{ q \ge 0 :\; \sum_{s\in S} q_s = 1,\;\;
+    q_s \le \frac{p_s}{1-\beta} \Big\},
+  \label{eq:envelope}
+\end{equation}
+so the CVaR problem is the two-level program
+\[
+  \minimize_{x \ge 0} \;\; \maximize_{q \in \mathcal{Q}} \;\;
+    \sum_{s\in S} q_s\, f(x,\xi^{s}).
+\]
+For fixed $x$ the inner problem is a linear program in $q$. Attach the
+free multiplier $\eta$ to $\sum_s q_s = 1$ and $\lambda_s \ge 0$ to
+$q_s \le p_s/(1-\beta)$. Its dual is
+\[
+  \minimize_{\eta,\,\lambda \ge 0} \;\;
+    \eta + \frac{1}{1-\beta}\sum_{s\in S} p_s \lambda_s
+  \qquad\text{s.t.}\qquad
+  \eta + \lambda_s \;\ge\; f(x,\xi^{s}) \quad \forall\, s \in S,
+\]
+the row for $s$ coming from the primal variable $q_s \ge 0$. The inner LP
+is feasible and bounded, so strong duality holds and the maximum may be
+replaced by this minimum. Since the outer problem also minimises, the two
+merge into one level:
+\begin{align}
+  \minimize_{x,\eta,\lambda,t} \quad
+    & \eta + \frac{1}{1-\beta}\sum_{s\in S} p_s \lambda_s \\
+  \text{s.t.}\quad
+    & \eta + \lambda_s \;\ge\; \sum_{i \in N} t^{s}_i
+      && \forall\, s \in S \\
+    & t^{s}_i \ge h_i(x_i - \xi^{s}_i),\quad
+      t^{s}_i \ge b_i(\xi^{s}_i - x_i) && \forall\, i \in N,\; s \in S \\
+    & \lambda_s \ge 0,\quad x_i \ge 0 && \forall\, i \in N,\; s \in S .
+\end{align}
+
+This is \emph{identical} to the epigraph model of Section~3.2 under
+$\lambda_s = u_s$: the optimal $\lambda_s$ is
+$(f(x,\xi^{s})-\eta)^{+}$. So the Rockafellar--Uryasev formulation is
+precisely the linear-programming dual of the risk-envelope
+representation, which is a satisfying way to see why \eqref{eq:ru} is
+true rather than merely useful.
+
+\subsection*{3.4\quad(Part 4) The CVaR model with the band constraint}
+
+By Proposition~\ref{prop:aerobust} the band must hold on all of
+$\supp(P)$. With finite support the argument is immediate and needs no
+limit: each atom carries mass $p_s > 0$, so a violation at one atom is a
+violation on a set of positive probability. Hence
+\begin{align}
+  \minimize_{x \ge 0} \quad & \CVaR_\beta\big[ f(x,\xi) \big] \\
+  \text{s.t.}\quad
+    & (1-\rho)\,\xi^{s}_i \le x_i \le (1+\rho)\,\xi^{s}_i
+      && \forall\, i \in N,\; \forall\, s \in S ,
+\end{align}
+which collapses, exactly as before, to the $2n$ rows
+\[
+  (1-\rho)\max_{s\in S}\xi^{s}_i \;\le\; x_i \;\le\;
+  (1+\rho)\min_{s\in S}\xi^{s}_i \qquad \forall\, i \in N,
+\]
+feasible under the condition of Remark~\ref{rem:feas} with the minimum and
+maximum taken over the atoms. If instead one reads the uncertainty set as
+$\conv\{\xi^{s}\}$, the bounds are unchanged, because a linear function
+over a convex hull attains its extrema at the generating points.
+
+\subsection*{3.5\quad Classification and numerical results}
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Question (taxonomy, slides 8--10) & Answer for the epigraph LP \\
+\midrule
+Constrained?             & Yes \\
+Variable type and size   & Continuous, $1+n+|S|+n|S|$ \\
+Objective type           & Linear \\
+Constraint type and size & Linear, $|S|(2n+1)$ rows, $+2n$ with the band \\
+Parameters               & Stochastic, finite support, known $p_s$ \\
+Stages and players       & Single stage; one player, though
+                           \eqref{eq:envelope} gives an adversarial
+                           reading over $\mathcal{Q}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Same $h,b$ and the same coupled $\Xi$ as Problem 2, with $|S| = 400$
+equally likely scenarios drawn from $\Xi$ and $\beta = 0.95$.
+
+\begin{center}
+\begin{tabular}{@{}lr@{}}
+\toprule
+Quantity & Value \\
+\midrule
+Optimal $\CVaR_{0.95}$ & $38.647547$ \\
+Order quantity $x$ & $(29.0513,\; 19.7828,\; 18.4501)$ \\
+$\eta$ at the optimum, that is $\VaR_{0.95}$ & $36.721867$ \\
+Scenarios strictly above $\eta$ & $20$ of $400$, as expected from
+  $(1-\beta)|S| = 20$ \\
+LP size & $2800$ rows \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Ordering check.} Each model solved at its own optimum:
+expectation $23.596948$, $\CVaR_{0.95}$ $38.647547$, worst case over the
+scenario set $41.882681$. The required ordering
+$\mathbb{E} \le \CVaR_\beta \le \max$ holds, which is the structural
+sanity check for this family.
+
+\textbf{Master--subproblem.} With $\eta \ge 0$ imposed per
+Remark~\ref{rem:unbdd}:
+
+\begin{center}
+\begin{tabular}{@{}rrrr@{}}
+\toprule
+Round & $|W|$ & Master (lower bound) & True CVaR (upper bound) \\
+\midrule
+1 & 10 & $12.914440$ & $478.299416$ \\
+2 & 20 & $32.404084$ & $181.320920$ \\
+3 & 30 & $35.313817$ & $85.333800$ \\
+4 & 40 & $38.617899$ & $38.680429$ \\
+5 & 42 & $38.647547$ & $38.647547$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Five rounds and $42$ of $400$ scenarios, $10.5\%$, reproducing the full
+LP value exactly. The jump between rounds 1 and 2 is the working set
+crossing the tail mass of Remark~\ref{rem:unbdd}.
+
+\textbf{The dualisation, checked.} At the optimal $x$, the risk-envelope
+LP \eqref{eq:envelope} returns $38.647547$, equal to the CVaR computed
+directly from the scenario costs. Its optimal $q$ has exactly $20$
+nonzeros, all at the cap $p_s/(1-\beta) = 0.05$, which is the textbook
+structure: CVaR puts the maximum admissible weight on the worst
+$(1-\beta)$ fraction and zero elsewhere.
+
+\textbf{The band.} Over the atoms, $\rho^{*}_i = (0.4978,\,0.6657,\,
+0.4265)$, so the threshold is $0.6657$. Infeasible at $\rho = 0.4$ and
+$\rho = 0.6647$; feasible at $\rho = 0.6667$ with CVaR $83.8378$, falling
+to $79.2371$, $72.3338$ and $67.8643$ at $\rho = 0.75,\,0.90,\,1.00$,
+against $38.6475$ unconstrained.
+
+%=======================================================================
+\newpage
+\section*{Problem 4.\quad $\sigma$-Algebras and Pushforward Measures
+  \quad[30 pts]}
+%=======================================================================
+
+\subsection*{4.1\quad(Part 1) The countable--cocountable $\sigma$-algebra}
+
+\begin{proposition}
+Let $\Omega$ be uncountable and
+$\mathcal{F} := \{A \subseteq \Omega :\; A \text{ is countable, or }
+\Omega\setminus A \text{ is countable}\}$. Then $\mathcal{F}$ is a
+$\sigma$-algebra on $\Omega$.
+\end{proposition}
+
+\begin{proof}
+\textbf{(i) $\emptyset \in \mathcal{F}$.} The empty set is finite, hence
+countable, so $\emptyset \in \mathcal{F}$. (Also $\Omega \in \mathcal{F}$,
+since $\Omega\setminus\Omega = \emptyset$ is countable.)
+
+\textbf{(ii) Closed under complements.} Let $A \in \mathcal{F}$ and put
+$A^{c} = \Omega\setminus A$. If $A$ is countable then
+$\Omega\setminus A^{c} = A$ is countable, so $A^{c}$ has countable
+complement and $A^{c} \in \mathcal{F}$. If instead $A^{c}$ is countable
+then $A^{c} \in \mathcal{F}$ directly. Either way $A^{c} \in \mathcal{F}$.
+
+\textbf{(iii) Closed under countable unions.} Let
+$\{A_k\}_{k=1}^{\infty} \subseteq \mathcal{F}$ and $A = \bigcup_k A_k$.
+
+\emph{Case 1: every $A_k$ is countable.} Then $A$ is a countable union of
+countable sets, hence countable, so $A \in \mathcal{F}$.
+
+\emph{Case 2: some $A_{k_0}$ has countable complement.} By De Morgan,
+$\Omega\setminus A = \bigcap_k (\Omega\setminus A_k) \subseteq
+\Omega\setminus A_{k_0}$. A subset of a countable set is countable, so
+$\Omega\setminus A$ is countable and $A \in \mathcal{F}$.
+
+The two cases are exhaustive, so $\mathcal{F}$ is closed under countable
+unions and is a $\sigma$-algebra.
+\end{proof}
+
+\begin{remark}
+Uncountability of $\Omega$ is what makes $\mathcal{F}$ interesting rather
+than trivial: it guarantees that no set is both countable and
+cocountable, so the two branches of the definition do not collapse, and
+$\mathcal{F} \ne 2^{\Omega}$ whenever $\Omega$ has a subset that is
+neither countable nor cocountable, as $[0,1]$ does.
+\end{remark}
+
+\subsection*{4.2\quad(Part 2) The $\sigma$-algebra generated by
+  $\mathcal{F}_0$}
+
+Let $\Omega = \{1,2,3,4\}$ and
+$\mathcal{F}_0 = \big\{\{1\},\{3,4\}\big\}$. Since $\Omega$ is finite,
+countable unions are finite unions and $\sigma(\mathcal{F}_0)$ is the
+smallest family containing $\mathcal{F}_0$ that is closed under
+complement and union.
+
+Build it. We must have $\emptyset$ and $\Omega$. Complements force
+$\{1\}^{c} = \{2,3,4\}$ and $\{3,4\}^{c} = \{1,2\}$. The union
+$\{1\}\cup\{3,4\} = \{1,3,4\}$ must be present, hence so must its
+complement $\{2\}$. The family now has the three disjoint sets
+$\{1\},\{2\},\{3,4\}$, which partition $\Omega$; these are the
+\emph{atoms}. Every union of atoms is forced, and the family of all such
+unions is already closed under complement and union, so the construction
+terminates:
+\[
+  \sigma(\mathcal{F}_0) \;=\;
+  \Big\{\, \emptyset,\;
+    \{1\},\; \{2\},\; \{3,4\},\;
+    \{1,2\},\; \{1,3,4\},\; \{2,3,4\},\;
+    \{1,2,3,4\} \,\Big\},
+  \qquad |\sigma(\mathcal{F}_0)| = 8 .
+\]
+
+There are $3$ atoms and $2^{3} = 8$ members, as it must be for a
+$\sigma$-algebra on a finite set. Note that $\{3\} \notin
+\sigma(\mathcal{F}_0)$: the generators cannot distinguish the outcomes
+$3$ and $4$, so no set in the generated $\sigma$-algebra separates them.
+This is the standard reading of a $\sigma$-algebra as the information
+available: $\sigma(\mathcal{F}_0)$ is exactly the collection of events
+whose occurrence can be decided from knowing the answers to
+``is the outcome in $\{1\}$?'' and ``is the outcome in $\{3,4\}$?''.
+
+\subsection*{4.3\quad(Part 3) Closure under countable intersections}
+
+\begin{proposition}
+Let $\mathcal{F}$ be a $\sigma$-algebra on $\Omega$ and
+$\{A_k\}_{k=1}^{\infty} \subseteq \mathcal{F}$. Then
+$\bigcap_{k=1}^{\infty} A_k \in \mathcal{F}$.
+\end{proposition}
+
+\begin{proof}
+By De Morgan,
+\[
+  \bigcap_{k=1}^{\infty} A_k
+  \;=\; \Big( \bigcup_{k=1}^{\infty} A_k^{c} \Big)^{c}.
+\]
+Each $A_k \in \mathcal{F}$, so $A_k^{c} \in \mathcal{F}$ by closure under
+complements. The countable union $\bigcup_k A_k^{c}$ is then in
+$\mathcal{F}$ by closure under countable unions. Its complement is in
+$\mathcal{F}$ by closure under complements again. Hence
+$\bigcap_k A_k \in \mathcal{F}$.
+\end{proof}
+
+Only the three defining properties are used, and each is used exactly
+where stated, which is why a $\sigma$-algebra is not required to list
+intersections separately in its definition.
+
+\subsection*{4.4\quad(Part 4) Pushforward of $\mathrm{Unif}[-1,1]$ under
+  $X(\xi) = \xi^{2}$}
+
+Let $\xi \sim P = \mathrm{Unif}[-1,1]$, so $P$ has density $\tfrac12$ on
+$[-1,1]$, and let $X(\xi) = \xi^{2}$ with pushforward
+$P_X = P \circ X^{-1}$.
+
+\paragraph{(a) Support.} $X$ maps $[-1,1]$ onto $[0,1]$, and every
+$t \in [0,1]$ has a preimage. For any $t \in [0,1]$ and $\epsilon>0$, the
+set $X^{-1}\big((t-\epsilon,t+\epsilon)\big)$ contains a nondegenerate
+interval of $\xi$ values and therefore has positive $P$-measure, so
+$P_X\big((t-\epsilon,t+\epsilon)\big) > 0$. For $t \notin [0,1]$ a small
+enough neighbourhood has preimage $\emptyset$. Hence
+\[
+  \supp(P_X) = [0,1].
+\]
+
+\paragraph{(b) Cumulative distribution function.} For $t \ge 0$,
+\[
+  X^{-1}\big((-\infty,t]\big)
+  = \{\xi : \xi^{2} \le t\}
+  = [-\sqrt{t},\,\sqrt{t}],
+\]
+so by the definition $P_X(A) = P(X^{-1}(A))$,
+\[
+  F_X(t) \;=\; P_X\big((-\infty,t]\big)
+  \;=\; P\big([-\sqrt{t},\sqrt{t}\,] \cap [-1,1]\big)
+  \;=\; \tfrac12 \cdot 2\sqrt{t} \;=\; \sqrt{t}
+  \qquad \text{for } 0 \le t \le 1 .
+\]
+Collecting the cases,
+\[
+  F_X(t) =
+  \begin{cases}
+    0, & t < 0,\\[2pt]
+    \sqrt{t}, & 0 \le t \le 1,\\[2pt]
+    1, & t > 1 .
+  \end{cases}
+\]
+$F_X$ is continuous and nondecreasing, with $F_X(0)=0$ and $F_X(1)=1$.
+
+\paragraph{(c) Probability density function.} Differentiating on the
+interior,
+\[
+  f_X(t) \;=\; \frac{\mathrm{d}}{\mathrm{d}t}\sqrt{t}
+  \;=\; \frac{1}{2\sqrt{t}}, \qquad t \in (0,1),
+\]
+and $f_X(t) = 0$ otherwise. It integrates to one:
+$\int_0^1 \tfrac{1}{2\sqrt t}\,\mathrm{d}t = \big[\sqrt t\,\big]_0^1 = 1$.
+The density is unbounded as $t \downarrow 0$ but remains integrable, which
+is the analytic counterpart of $F_X$ having infinite slope at the origin.
+Squaring compresses the mass near $\pm 1$ and piles it up near $0$.
+
+\subsection*{4.5\quad Numerical check}
+
+The $\sigma$-algebra of Section~4.2 was also generated programmatically by
+closing $\{\{1\},\{3,4\}\}$ under complement and union: the fixed point
+has $8$ members, matching the list above exactly, with atoms
+$\{1\},\{2\},\{3,4\}$, and it passes a direct test for closure under
+complement and union. All $28$ pairwise intersections lie inside it,
+consistent with Section~4.3.
+
+For the pushforward, $4{,}000{,}000$ draws of $\xi \sim
+\mathrm{Unif}[-1,1]$ give an empirical CDF of $X = \xi^{2}$ agreeing with
+$\sqrt{t}$ to a worst deviation of $0.000364$ over a grid of $21$ points,
+against a Monte Carlo standard error of about $0.0005$. The identity
+$P(X \le t) = P(-\sqrt t \le \xi \le \sqrt t)$ holds exactly in the
+sample. Moments confirm the density: $\mathbb{E}[X^{k}]$ came out
+$0.333277$, $0.199984$ and $0.142872$ for $k=1,2,3$, against the exact
+values $\int_0^1 t^{k}/(2\sqrt t)\,\mathrm{d}t = 1/(2k+1)$, that is
+$1/3$, $1/5$ and $1/7$.
+
+%=======================================================================
+\newpage
+\section*{EP3.\quad What are coherent risk measures?}
+%=======================================================================
+
+A risk measure assigns to a random loss $Z$ a single number
+$\varrho(Z)$ saying how much that loss should worry us. Variance was the
+classical answer and is a poor one for losses: it penalises favourable
+deviations as hard as unfavourable ones, and it is not expressed in the
+units of the loss. Artzner, Delbaen, Eber and Heath (1999) asked instead
+which properties a sensible measure of loss \emph{ought} to have, and
+called a measure \emph{coherent} when it has all four.
+
+\textbf{The four axioms.} For losses $Z, Z_1, Z_2$ and constants
+$c \in \mathbb{R}$, $\lambda \ge 0$:
+\begin{enumerate}
+  \item \emph{Monotonicity.} $Z_1 \le Z_2$ pointwise implies
+    $\varrho(Z_1) \le \varrho(Z_2)$. A position that loses more in every
+    state is riskier.
+  \item \emph{Translation equivariance.} $\varrho(Z+c) = \varrho(Z)+c$.
+    Adding a certain loss of $c$ raises the requirement by exactly $c$,
+    so $\varrho$ is denominated in money.
+  \item \emph{Positive homogeneity.} $\varrho(\lambda Z) =
+    \lambda\varrho(Z)$. Doubling a position doubles its risk.
+  \item \emph{Subadditivity.} $\varrho(Z_1+Z_2) \le \varrho(Z_1) +
+    \varrho(Z_2)$. Merging two positions cannot create risk; this is the
+    formal statement that diversification should never be punished.
+\end{enumerate}
+Axioms 3 and 4 together give convexity,
+$\varrho(\lambda Z_1 + (1-\lambda)Z_2) \le \lambda\varrho(Z_1) +
+(1-\lambda)\varrho(Z_2)$ for $\lambda \in [0,1]$, which is what makes a
+coherent measure usable as an objective in a convex program.
+
+\textbf{Why VaR fails and CVaR does not.} $\VaR_\beta$ satisfies axioms 1
+to 3 but violates subadditivity. The standard counterexample is two
+independent defaultable bonds, each with a small default probability
+below $1-\beta$: separately each has $\VaR_\beta = 0$, but the
+portfolio defaults with probability large enough to push $\VaR_\beta$
+above zero, so $\varrho(Z_1+Z_2) > \varrho(Z_1)+\varrho(Z_2)$. VaR
+therefore reports that splitting a portfolio in two reduces its risk,
+which is the opposite of what diversification means. $\CVaR_\beta$ repairs
+this: it averages the whole tail rather than reading off a single
+quantile, and it satisfies all four axioms.
+
+\textbf{The representation theorem, and why it matters here.} Every
+coherent risk measure on a finite probability space is the support
+function of a closed convex set of probability measures:
+\[
+  \varrho(Z) \;=\; \max_{q \in \mathcal{Q}} \; \mathbb{E}_{q}[Z]
+\]
+for some \emph{risk envelope} $\mathcal{Q}$. Coherent risk minimisation is
+therefore robust optimisation in disguise, with $\mathcal{Q}$ as the
+ambiguity set. The two extremes bracket everything in between: taking
+$\mathcal{Q} = \{P\}$ recovers the expectation, and taking $\mathcal{Q}$
+to be all distributions supported on $\Xi$ recovers the worst case. CVaR
+sits between them with
+\[
+  \mathcal{Q}_{\CVaR} = \Big\{ q \ge 0 :\;
+    \textstyle\sum_s q_s = 1,\;\; q_s \le p_s/(1-\beta) \Big\},
+\]
+which is the set used in Problem 3. That is exactly why the three models
+in this homework line up as
+$\mathbb{E} \le \CVaR_\beta \le \max$, confirmed numerically there as
+$23.5969 \le 38.6475 \le 41.8827$: they are the same optimisation problem
+over three nested ambiguity sets. It is also why dualising the inner
+maximisation in Section~3.3 returns the Rockafellar--Uryasev epigraph
+model: the dual of a support function is the epigraph form of the measure.
+
+\textbf{What the axioms cost.} Positive homogeneity is the one most often
+given up. It rules out any extra penalty for sheer size, yet a position
+ten times larger may be harder to liquidate than ten separate positions.
+Dropping it while keeping monotonicity, translation equivariance and
+convexity gives the larger class of \emph{convex} risk measures, of which
+the entropic risk measure $\tfrac1\gamma\log\mathbb{E}[e^{\gamma Z}]$ is
+the standard example. For optimisation purposes convexity is the property
+that actually matters, since it is what keeps the problem tractable;
+coherence is the stronger requirement one imposes when the number must
+also behave like a capital requirement.
+
+\textbf{References.} P.~Artzner, F.~Delbaen, J.-M. Eber and D.~Heath,
+``Coherent Measures of Risk'', \emph{Mathematical Finance} 9(3),
+203--228, 1999. R.~T. Rockafellar and S.~Uryasev, ``Optimization of
+Conditional Value-at-Risk'', \emph{Journal of Risk} 2(3), 21--41, 2000.
+
+%=======================================================================
+\vspace{1em}
+\hrule
+\vspace{0.6em}
+{\small All numerical values quoted above were produced by the
+accompanying Python files \texttt{p1\_stochastic.py},
+\texttt{p2\_robust.py}, \texttt{p3\_cvar.py} and
+\texttt{p4\_measure.py}, solved with PuLP and CBC. Every instance outside
+the assignment statement was constructed for this report; the figures are
+specific to those instances and are not claims about the general case.}
+
+\end{document}
