@@ -54,9 +54,10 @@ Problems 1 to 3 share one setting, so it is stated once here and reused.
 Symbol & Definition \\
 \midrule
 $N = \{1,\dots,n\}$ & Products, indexed by $i$ \\
-$\Xi \subseteq \mathbb{R}^n_+$ & Support of the demand vector, a polytope,
-   $\Xi = \supp(P)$ \\
-$\ext(\Xi) = \{v^1,\dots,v^K\}$ & Extreme points of $\Xi$, indexed by $k$ \\
+$\Xi \subseteq \mathbb{R}^n_+$ & Support of the demand vector, see
+   \eqref{eq:xidef} \\
+$\ext(\Xi) = \{v^1,\dots,v^K\}$ & Extreme points of $\Xi$, see
+   \eqref{eq:extdef}, indexed by $k$ \\
 $M = \{1,\dots,m\}$ & Sample indices in the SAA, indexed by $j$ \\
 $S = \{1,\dots,|S|\}$ & Scenario indices when $\Xi$ is finite, indexed by $s$ \\
 \bottomrule
@@ -79,6 +80,41 @@ $p_s > 0$ & Probability of scenario $s$, $\sum_{s} p_s = 1$ & dimensionless \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+Three derived objects are used throughout and are defined here rather
+than named, since every later argument depends on their precise content.
+
+\textbf{The support.} For $\epsilon > 0$ write
+$B_\epsilon(\xi) := \{\zeta \in \mathbb{R}^n : \|\zeta - \xi\| < \epsilon\}$
+for the open ball of radius $\epsilon$ about $\xi$. The support of $P$ is
+\begin{equation}
+  \supp(P) \;:=\;
+  \big\{ \xi \in \mathbb{R}^n :\;
+    P\big(B_\epsilon(\xi)\big) > 0 \;\;\text{for every } \epsilon > 0 \big\},
+  \qquad \Xi := \supp(P).
+  \label{eq:xidef}
+\end{equation}
+It is assumed throughout that $\Xi$ is a polytope, that is
+$\Xi = \{\xi \in \mathbb{R}^n_+ : A\xi \le d\}$ for some
+$A \in \mathbb{R}^{r\times n}$ and $d \in \mathbb{R}^{r}$, and that it is
+bounded, hence compact. The defining property in \eqref{eq:xidef} is
+exactly fact (ii) of the hint in Problem 1, and it is what drives
+Proposition~\ref{prop:aerobust}.
+
+\textbf{The extreme points.} A point $v \in \Xi$ is an extreme point when
+it is not the midpoint of any segment inside $\Xi$:
+\begin{equation}
+  \ext(\Xi) \;:=\;
+  \Big\{ v \in \Xi :\;
+    v = \tfrac12(y+z),\; y,z \in \Xi \;\Longrightarrow\; y = z = v \Big\}.
+  \label{eq:extdef}
+\end{equation}
+Equivalently, in terms of the description $A\xi \le d$ and writing
+$I(v) := \{\,r : A_r v = d_r\,\}$ for the rows active at $v$, the point
+$v \in \Xi$ is an extreme point if and only if
+$\operatorname{rank}\{A_r : r \in I(v)\} = n$. A polytope has finitely
+many extreme points, so $K := |\ext(\Xi)| < \infty$, which is the whole
+reason Problem 2 reduces to a finite linear program.
 
 \subsection*{0.3\quad Random element and decision variables}
 
@@ -331,12 +367,57 @@ it has to cover, no order quantity works at all. Section~1.7 confirms the
 threshold numerically.
 \end{remark}
 
-\subsection*{1.6\quad(Part 3d) Comment}
+\subsection*{1.6\quad(Part 3d) Comment, and the two alternatives
+  written out}
 
-No answer required. The point stands: an uncertain constraint required to
-hold almost surely is a robust constraint in disguise, and the two usual
-escapes are to relax it into a chance constraint, or to add second-stage
-recourse so feasibility can be restored after $\xi$ is seen.
+No answer is required, but the point deserves to be made concrete, because
+it is the whole difference between a stochastic and a robust model.
+Proposition~\ref{prop:aerobust} shows that imposing \eqref{eq:band}
+almost surely does not produce a stochastic constraint at all: it produces
+a robust one, and by Remark~\ref{rem:feas} it can empty the feasible set
+outright. A worst-case bound of this kind is a robust-optimization device,
+and placing one inside an average-case model mixes two different
+philosophies of protection. If the band is genuinely wanted inside a
+stochastic model, one of the following two should replace it.
+
+\textbf{(i) Relax feasibility: a chance constraint.} Allow the band to
+fail with probability at most $\alpha$:
+\begin{align}
+  \minimize_{x \ge 0} \quad & \mathbb{E}_P\big[ f(x,\xi) \big] \\
+  \text{s.t.}\quad
+    & P\Big( (1-\rho)\xi_i \le x_i \le (1+\rho)\xi_i \;\;
+      \forall\, i \in N \Big) \;\ge\; 1-\alpha .
+\end{align}
+At $\alpha = 0$ this is the almost-sure model and collapses back to the
+robust bounds; for $\alpha > 0$ it is strictly weaker, and it is feasible
+for values of $\rho$ below the threshold $\rho^{*}$ of
+Remark~\ref{rem:feas}. The price is that the feasible region is generally
+nonconvex, so the model is no longer a linear program.
+
+\textbf{(ii) Restore feasibility after the fact: second-stage recourse.}
+Keep $x$ as the here-and-now decision, and let a second-stage variable
+absorb whatever the band fails to cover once $\xi$ is observed. With
+$z^{+}_i(\xi), z^{-}_i(\xi) \ge 0$ the over- and under-shoot of the band
+and $\pi_i \ge 0$ the unit price of correcting it,
+\begin{align}
+  \minimize_{x \ge 0} \quad
+    & \mathbb{E}_P\Big[\, f(x,\xi)
+      + \sum_{i \in N} \pi_i\big( z^{+}_i(\xi) + z^{-}_i(\xi) \big) \Big] \\
+  \text{s.t.}\quad
+    & x_i - (1+\rho)\xi_i \;\le\; z^{+}_i(\xi)
+      && \forall\, i \in N, \;\; P\text{-a.e.} \\
+    & (1-\rho)\xi_i - x_i \;\le\; z^{-}_i(\xi)
+      && \forall\, i \in N, \;\; P\text{-a.e.} \\
+    & z^{+}_i(\xi),\, z^{-}_i(\xi) \ge 0
+      && \forall\, i \in N, \;\; P\text{-a.e.}
+\end{align}
+This is always feasible, because the recourse variables can take any
+nonnegative value, so the threshold of Remark~\ref{rem:feas} disappears.
+The band is now priced rather than forbidden, and letting
+$\pi_i \to \infty$ recovers the hard constraint. Under the finite support
+of Problem 3 the recourse variables become $z^{\pm}_{i,s}$ and the whole
+thing stays a linear program, which is why recourse is usually the
+preferred route in practice.
 
 \subsection*{1.7\quad Classification and numerical check}
 
