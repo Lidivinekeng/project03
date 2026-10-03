@@ -41,12 +41,12 @@
 \vspace{0.6em}
 
 %=======================================================================
-\section*{0.\quad Common model}
+\section*{Setup.\quad Common model for Problems 1 to 3}
 %=======================================================================
 
 Problems 1 to 3 share one setting, so it is stated once here and reused.
 
-\subsection*{0.1\quad Sets}
+\subsection*{Sets}
 
 \begin{center}
 \begin{tabular}{@{}ll@{}}
@@ -64,7 +64,7 @@ $S = \{1,\dots,|S|\}$ & Scenario indices when $\Xi$ is finite, indexed by $s$ \\
 \end{tabular}
 \end{center}
 
-\subsection*{0.2\quad Parameters}
+\subsection*{Parameters}
 
 \begin{center}
 \begin{tabular}{@{}lll@{}}
@@ -116,7 +116,7 @@ $\operatorname{rank}\{A_r : r \in I(v)\} = n$. A polytope has finitely
 many extreme points, so $K := |\ext(\Xi)| < \infty$, which is the whole
 reason Problem 2 reduces to a finite linear program.
 
-\subsection*{0.3\quad Random element and decision variables}
+\subsection*{Random element and decision variables}
 
 \[
   \xi \in \Xi \subseteq \mathbb{R}^n_+ ,\quad \xi \sim P
@@ -130,7 +130,7 @@ reason Problem 2 reduces to a finite linear program.
 Auxiliary variables are introduced only where a reformulation needs them,
 and are named at that point.
 
-\subsection*{0.4\quad Cost function}
+\subsection*{Cost function}
 
 For an order $x$ and a realised demand $\xi$,
 \begin{equation}
@@ -194,7 +194,7 @@ what makes every model below a convex program.
   \quad[25 pts]}
 %=======================================================================
 
-\subsection*{1.1\quad(Part 1) The stochastic model}
+\subsection*{1.\quad The stochastic model}
 
 No reformulation is performed; the expectation and the positive parts are
 left as they stand.
@@ -208,7 +208,7 @@ left as they stand.
 This is a single-stage problem: $x$ is chosen before $\xi$ is observed and
 there is no recourse decision. The randomness enters the objective only.
 
-\subsection*{1.2\quad(Part 2) Sample average approximation}
+\subsection*{2.\quad Sample average approximation}
 
 Draw $\xi^1,\dots,\xi^m$ independently from $P$ and replace the
 expectation by the empirical mean over the sample:
@@ -240,10 +240,10 @@ pushed down to the larger of its two lower bounds.
 The SAA optimal value is the \emph{in-sample} average at the \emph{same}
 sample that defined it, so it is optimistically biased downward. The
 honest out-of-sample number is $\mathbb{E}_P[f(\hat{x}_m,\xi)]$ evaluated
-at the SAA solution $\hat{x}_m$. Section~1.7 reports both.
+at the SAA solution $\hat{x}_m$. The numerical check below reports both.
 \end{remark}
 
-\subsection*{1.3\quad(Part 3a) Physical meaning of the band constraint}
+\subsection*{3(a).\quad Physical meaning of the band constraint}
 
 The additional constraint is
 \begin{equation}
@@ -269,7 +269,7 @@ realised $\xi$. A single deterministic $x$ cannot adapt to the
 realisation, so the constraint can only be imposed in a probabilistic
 sense. That is what Part 3b makes precise and what Part 3c then collapses.
 
-\subsection*{1.4\quad(Part 3b) The constrained stochastic model}
+\subsection*{3(b).\quad The constrained stochastic model}
 
 Requiring the band to hold almost surely under $P$,
 \begin{align}
@@ -286,7 +286,7 @@ where the probability constraint means
   \;=\; 1 .
 \]
 
-\subsection*{1.5\quad(Part 3c) The a.e.\ constraint is a robust constraint}
+\subsection*{3(c).\quad The a.e.\ constraint is a robust constraint}
 
 \begin{proposition}
 \label{prop:aerobust}
@@ -363,12 +363,11 @@ if $(1-\rho)\overline{\xi}_i \le (1+\rho)\underline{\xi}_i$, that is
 \end{equation}
 This is the price of insisting on an almost-sure constraint with a
 here-and-now decision: if the band is narrower than the spread of demand
-it has to cover, no order quantity works at all. Section~1.7 confirms the
-threshold numerically.
+it has to cover, no order quantity works at all. The numerical check
+below confirms the threshold.
 \end{remark}
 
-\subsection*{1.6\quad(Part 3d) Comment, and the two alternatives
-  written out}
+\subsection*{3(d).\quad Comment, and the two alternatives written out}
 
 No answer is required, but the point deserves to be made concrete, because
 it is the whole difference between a stochastic and a robust model.
@@ -419,7 +418,7 @@ of Problem 3 the recourse variables become $z^{\pm}_{i,s}$ and the whole
 thing stays a linear program, which is why recourse is usually the
 preferred route in practice.
 
-\subsection*{1.7\quad Classification and numerical check}
+\subsection*{Classification and numerical check}
 
 \begin{center}
 \begin{tabular}{@{}ll@{}}
@@ -489,7 +488,7 @@ The threshold predicted by Remark~\ref{rem:feas} is reproduced exactly.
   \quad[40 pts]}
 %=======================================================================
 
-\subsection*{2.1\quad(Part 1) The robust model}
+\subsection*{1.\quad The robust model}
 
 Replace the expectation by the worst case over the support:
 \begin{align}
@@ -501,7 +500,7 @@ Replace the expectation by the worst case over the support:
 No reformulation is performed. As written the inner problem has infinitely
 many candidate $\xi$, so this is a semi-infinite program.
 
-\subsection*{2.2\quad(Part 2) An equivalent LP with finitely many rows}
+\subsection*{2.\quad An equivalent LP with finitely many rows}
 
 By Lemma~\ref{lem:convex}, $f(x,\cdot)$ is convex on the polytope $\Xi$. A
 convex function maximised over a polytope attains its maximum at an
@@ -529,14 +528,14 @@ $k$, then use \eqref{eq:costmax}:
 \end{align}
 Size: $1 + n + nK$ variables and $K(2n+1)$ rows. Finite, and an LP.
 
-\subsection*{2.3\quad(Part 3) When the extreme points cannot be enumerated}
+\subsection*{3.\quad When the extreme points cannot be enumerated}
 
 $K$ is typically exponential in $n$, so \eqref{eq:p2epi} should be
 generated on demand rather than written out. Use delayed constraint
 generation.
 
 \textbf{Master.} Keep a working set $W \subseteq \ext(\Xi)$ and solve the
-LP of Section~2.2 restricted to $k \in W$. Dropping rows relaxes the
+LP of Part 2 restricted to $k \in W$. Dropping rows relaxes the
 problem, so the master value is a lower bound on the robust optimum,
 provided every element of $W$ is a genuine point of $\Xi$.
 
@@ -586,10 +585,11 @@ componentwise minimum $\underline{\xi} = (\underline{\xi}_1,\dots,
 minimum is attained in $\Xi$, but the vector collecting them need not lie
 in $\Xi$ when the coordinates are coupled. Adding such a row makes the
 master a restriction rather than a relaxation, and the procedure converges
-to the wrong value. Section~2.9 reports an instance where this happens.
+to the wrong value. The numerical results below report an instance where
+this happens.
 \end{remark}
 
-\subsection*{2.4\quad(Part 4) The identity for $n=1$}
+\subsection*{4.\quad The identity for $n=1$}
 
 \begin{proposition}
 For $h,b \ge 0$ and any $x,\xi \in \mathbb{R}$,
@@ -613,7 +613,7 @@ $h,b \ge 0$ at most one of the two linear pieces is positive and the other
 is nonpositive; adding the positive parts and taking the larger therefore
 give the same number.
 
-\subsection*{2.5\quad(Part 5) An alternative LP for $n=1$}
+\subsection*{5.\quad An alternative LP for $n=1$}
 
 For $n=1$ a polytope $\Xi \subset \mathbb{R}_+$ is a closed interval
 $[\underline{\xi},\overline{\xi}]$. Using the identity and exchanging the
@@ -651,17 +651,17 @@ coincide exactly, since
 $\underline{\xi} + (\overline{\xi}-\underline{\xi})\,b/(b+h)
  = (h\underline{\xi} + b\overline{\xi})/(h+b)$.
 
-\subsection*{2.6\quad(Part 6) Comparing the two reformulations}
+\subsection*{6.\quad Comparing the two reformulations}
 
 \begin{center}
 \begin{tabular}{@{}lrrl@{}}
 \toprule
 Formulation & Variables & Rows & Mechanism \\
 \midrule
-Extreme point (Section 2.2), $n=1$ &
+Extreme point (Part 2), $n=1$ &
   $1+n+nK = 4$ & $K(2n+1) = 6$ &
   enumerate vertices, then linearise at each \\
-Identity based (Section 2.5) &
+Identity based (Part 5) &
   $2$ & $2$ &
   resolve the inner maximum analytically \\
 \bottomrule
@@ -678,7 +678,7 @@ variables are needed at all.
 
 \textbf{What the measurement actually shows.} At $n=1$ both problems are
 too small for the row count to matter. Measured on the instance of
-Section~2.9: $6$ rows and $4$ columns solving in $0.0047$ s against $2$
+the instance below: $6$ rows and $4$ columns solving in $0.0047$ s against $2$
 rows and $2$ columns solving in $0.0042$ s, both returning
 $\tau^{*} = 16.0$ at $x^{*} = 26.0$, which also matches
 \eqref{eq:n1closed}. The difference is below timing noise, so the honest
@@ -733,9 +733,10 @@ valid only when $\Xi$ is a box. For a general polytope the coordinates are
 coupled and no single $\xi \in \Xi$ need attain every coordinate's own
 worst extreme simultaneously, so \eqref{eq:boxsep} is then only an upper
 bound and the extreme-point formulation, or constraint generation, is
-required. Section~2.9 quantifies that gap on a coupled instance.
+required. The numerical results below quantify that gap on a coupled
+instance.
 
-\subsection*{2.7\quad(Part 7) The robust model with the band constraint}
+\subsection*{7.\quad The robust model with the band constraint}
 
 In a robust model the band is required over the whole uncertainty set by
 definition, so no almost-sure argument is needed:
@@ -746,13 +747,13 @@ definition, so no almost-sure argument is needed:
       \qquad \forall\, i \in N,\; \forall\, \xi \in \Xi .
 \end{align}
 
-\subsection*{2.8\quad(Part 8) Yes, and here it is}
+\subsection*{8.\quad Yes, and here it is}
 
 Both semi-infinite pieces reduce, for different reasons.
 
 \emph{Objective.} $f(x,\cdot)$ is convex, so by \eqref{eq:vertexmax} the
 worst case is attained at an extreme point and the objective needs only
-the $K(2n+1)$ rows of Section~2.2.
+the $K(2n+1)$ rows of Part 2.
 
 \emph{Band.} For each $i$ the band is \emph{affine} in $\xi$, so its worst
 case over $\Xi$ is attained at an extreme point as well, and by the same
@@ -782,7 +783,7 @@ with $K(2n+1) + 2n$ rows. The band therefore costs only $2n$ extra rows,
 independent of $K$, and it is feasible under exactly the condition of
 Remark~\ref{rem:feas}.
 
-\subsection*{2.9\quad Classification and numerical results}
+\subsection*{Classification and numerical results}
 
 \begin{center}
 \begin{tabular}{@{}ll@{}}
@@ -823,7 +824,7 @@ Value of the coupling & $7.600000$ \\
 
 The box bound overstates the worst case by $7.6$, because no single
 $\xi\in\Xi$ can sit at every coordinate's own worst extreme at once. This
-is the quantitative form of the caveat in Section~2.6.
+is the quantitative form of the caveat in Part 6.
 
 \textbf{An observation worth recording.} If the lower total row is dropped
 and only $\sum_i \xi_i \le 60$ is kept, the robust value equals the
@@ -869,7 +870,7 @@ enlarges the feasible set.
 
 \textbf{The identity, guarded numerically.} Over $200{,}000$ random
 $(h,b,x,\xi)$ with $h,b \ge 0$, the largest discrepancy between the two
-sides of Section~2.4 was $0$ to machine precision. The proof is the
+sides of Part 4 was $0$ to machine precision. The proof is the
 case analysis; this only guards against a transcription slip.
 
 %=======================================================================
@@ -881,7 +882,7 @@ case analysis; this only guards against a transcription slip.
 Throughout this problem $\Xi$ has finite support,
 $\supp(P) = \{\xi^1,\dots,\xi^{|S|}\}$ with $P(\xi = \xi^s) = p_s > 0$.
 
-\subsection*{3.1\quad(Part 1) The CVaR model}
+\subsection*{1.\quad The CVaR model}
 
 For a loss $Z$ and level $\beta \in (0,1)$, write
 $\VaR_\beta(Z) = \inf\{\eta : P(Z \le \eta) \ge \beta\}$ and let
@@ -895,8 +896,8 @@ Replacing $\mathbb{E}_P$ by $\CVaR_\beta$ changes what is being optimised,
 not the decision structure: this is still a single-stage here-and-now
 problem.
 
-\subsection*{3.2\quad(Part 2) Epigraph reformulation and a
-  master--subproblem scheme}
+\subsection*{2.\quad Epigraph reformulation and a master--subproblem
+  scheme}
 
 \textbf{Epigraph form.} By the Rockafellar--Uryasev representation,
 \begin{equation}
@@ -958,7 +959,7 @@ an implementation detail: a naive scenario-dropping relaxation of
 \eqref{eq:ru} has no finite value until $W$ reaches the tail mass.
 \end{remark}
 
-\subsection*{3.3\quad(Part 3, extra credit) Dualising the inner problem}
+\subsection*{3.\quad Extra credit: dualising the inner problem}
 
 CVaR has the risk-envelope representation
 \begin{equation}
@@ -997,14 +998,14 @@ merge into one level:
     & \lambda_s \ge 0,\quad x_i \ge 0 && \forall\, i \in N,\; s \in S .
 \end{align}
 
-This is \emph{identical} to the epigraph model of Section~3.2 under
+This is \emph{identical} to the epigraph model of Part 2 under
 $\lambda_s = u_s$: the optimal $\lambda_s$ is
 $(f(x,\xi^{s})-\eta)^{+}$. So the Rockafellar--Uryasev formulation is
 precisely the linear-programming dual of the risk-envelope
 representation, which is a satisfying way to see why \eqref{eq:ru} is
 true rather than merely useful.
 
-\subsection*{3.4\quad(Part 4) The CVaR model with the band constraint}
+\subsection*{4.\quad The CVaR model with the band constraint}
 
 By Proposition~\ref{prop:aerobust} the band must hold on all of
 $\supp(P)$. With finite support the argument is immediate and needs no
@@ -1026,7 +1027,7 @@ maximum taken over the atoms. If instead one reads the uncertainty set as
 $\conv\{\xi^{s}\}$, the bounds are unchanged, because a linear function
 over a convex hull attains its extrema at the generating points.
 
-\subsection*{3.5\quad Classification and numerical results}
+\subsection*{Classification and numerical results}
 
 \begin{center}
 \begin{tabular}{@{}ll@{}}
@@ -1109,7 +1110,7 @@ against $38.6475$ unconstrained.
   \quad[30 pts]}
 %=======================================================================
 
-\subsection*{4.1\quad(Part 1) The countable--cocountable $\sigma$-algebra}
+\subsection*{1.\quad The countable--cocountable $\sigma$-algebra}
 
 \begin{proposition}
 Let $\Omega$ be uncountable and
@@ -1152,8 +1153,7 @@ $\mathcal{F} \ne 2^{\Omega}$ whenever $\Omega$ has a subset that is
 neither countable nor cocountable, as $[0,1]$ does.
 \end{remark}
 
-\subsection*{4.2\quad(Part 2) The $\sigma$-algebra generated by
-  $\mathcal{F}_0$}
+\subsection*{2.\quad The $\sigma$-algebra generated by $\mathcal{F}_0$}
 
 Let $\Omega = \{1,2,3,4\}$ and
 $\mathcal{F}_0 = \big\{\{1\},\{3,4\}\big\}$. Since $\Omega$ is finite,
@@ -1187,7 +1187,7 @@ available: $\sigma(\mathcal{F}_0)$ is exactly the collection of events
 whose occurrence can be decided from knowing the answers to
 ``is the outcome in $\{1\}$?'' and ``is the outcome in $\{3,4\}$?''.
 
-\subsection*{4.3\quad(Part 3) Closure under countable intersections}
+\subsection*{3.\quad Closure under countable intersections}
 
 \begin{proposition}
 Let $\mathcal{F}$ be a $\sigma$-algebra on $\Omega$ and
@@ -1212,14 +1212,16 @@ Only the three defining properties are used, and each is used exactly
 where stated, which is why a $\sigma$-algebra is not required to list
 intersections separately in its definition.
 
-\subsection*{4.4\quad(Part 4) Pushforward of $\mathrm{Unif}[-1,1]$ under
+\subsection*{4.\quad Pushforward of $\mathrm{Unif}[-1,1]$ under
   $X(\xi) = \xi^{2}$}
 
 Let $\xi \sim P = \mathrm{Unif}[-1,1]$, so $P$ has density $\tfrac12$ on
 $[-1,1]$, and let $X(\xi) = \xi^{2}$ with pushforward
 $P_X = P \circ X^{-1}$.
 
-\paragraph{(a) Support.} $X$ maps $[-1,1]$ onto $[0,1]$, and every
+\subsubsection*{4(a).\quad Support of $P_X$}
+
+$X$ maps $[-1,1]$ onto $[0,1]$, and every
 $t \in [0,1]$ has a preimage. For any $t \in [0,1]$ and $\epsilon>0$, the
 set $X^{-1}\big((t-\epsilon,t+\epsilon)\big)$ contains a nondegenerate
 interval of $\xi$ values and therefore has positive $P$-measure, so
@@ -1229,7 +1231,9 @@ enough neighbourhood has preimage $\emptyset$. Hence
   \supp(P_X) = [0,1].
 \]
 
-\paragraph{(b) Cumulative distribution function.} For $t \ge 0$,
+\subsubsection*{4(b).\quad Cumulative distribution function}
+
+For $t \ge 0$,
 \[
   X^{-1}\big((-\infty,t]\big)
   = \{\xi : \xi^{2} \le t\}
@@ -1253,7 +1257,9 @@ Collecting the cases,
 \]
 $F_X$ is continuous and nondecreasing, with $F_X(0)=0$ and $F_X(1)=1$.
 
-\paragraph{(c) Probability density function.} Differentiating on the
+\subsubsection*{4(c).\quad Probability density function}
+
+Differentiating on the
 interior,
 \[
   f_X(t) \;=\; \frac{\mathrm{d}}{\mathrm{d}t}\sqrt{t}
@@ -1265,14 +1271,14 @@ The density is unbounded as $t \downarrow 0$ but remains integrable, which
 is the analytic counterpart of $F_X$ having infinite slope at the origin.
 Squaring compresses the mass near $\pm 1$ and piles it up near $0$.
 
-\subsection*{4.5\quad Numerical check}
+\subsection*{Numerical check}
 
-The $\sigma$-algebra of Section~4.2 was also generated programmatically by
+The $\sigma$-algebra of Part 2 was also generated programmatically by
 closing $\{\{1\},\{3,4\}\}$ under complement and union: the fixed point
 has $8$ members, matching the list above exactly, with atoms
 $\{1\},\{2\},\{3,4\}$, and it passes a direct test for closure under
 complement and union. All $28$ pairwise intersections lie inside it,
-consistent with Section~4.3.
+consistent with Part 3.
 
 For the pushforward, $4{,}000{,}000$ draws of $\xi \sim
 \mathrm{Unif}[-1,1]$ give an empirical CDF of $X = \xi^{2}$ agreeing with
@@ -1349,7 +1355,7 @@ in this homework line up as
 $\mathbb{E} \le \CVaR_\beta \le \max$, confirmed numerically there as
 $23.5969 \le 38.6475 \le 41.8827$: they are the same optimisation problem
 over three nested ambiguity sets. It is also why dualising the inner
-maximisation in Section~3.3 returns the Rockafellar--Uryasev epigraph
+maximisation in Problem 3, Part 3 returns the Rockafellar--Uryasev epigraph
 model: the dual of a support function is the epigraph form of the measure.
 
 \textbf{What the axioms cost.} Positive homogeneity is the one most often
