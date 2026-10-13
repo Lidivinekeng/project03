@@ -213,6 +213,8 @@ if __name__ == "__main__":
                              for j in J))
         stats[r["name"]] = {
             "planned": planned,
+            "exact": float(np.sum(np.array(p) * tot)),
+            "obj": r["obj"],
             "mean": float(sample.mean()),
             "sd": float(sample.std()),
             "p90": float(np.quantile(sample, 0.90)),
@@ -230,6 +232,22 @@ if __name__ == "__main__":
         print(f"{r['name']:>20} {t['mean']:>10.2f} {t['sd']:>9.2f} "
               f"{t['p90']:>10.2f} {t['cvar']:>10.2f} {t['max']:>10.2f} "
               f"{t['cvarL']:>11.2f}")
+
+    print(f"\nwhere the gap between model objective and sample mean comes from")
+    print(f"{'model':>20} {'objective':>11} {'exact E free':>13} "
+          f"{'recourse':>10} {'sample mean':>12} {'noise':>9}")
+    for r in models:
+        t = stats[r["name"]]
+        print(f"{r['name']:>20} {t['obj']:>11.4f} {t['exact']:>13.4f} "
+              f"{t['obj']-t['exact']:>10.4f} {t['mean']:>12.2f} "
+              f"{t['exact']-t['mean']:>9.2f}")
+    print("The risk-neutral model minimises expected cost with free recourse,")
+    print("so its objective equals the exact expectation and the whole gap to")
+    print("the sample mean is sampling noise. The constrained models carry a")
+    print("second, systematic gap: the evaluation lets the operator ignore the")
+    print("chance and CVaR rows, which is cheaper than the recourse the model")
+    print("itself plans. That relaxation is the same effect as the service")
+    print("adequacy gap below.")
 
     print(f"\nservice adequacy, planned by the model against realised when the")
     print(f"operator re-optimises cost scenario by scenario")

@@ -450,26 +450,73 @@ Chance $+$ CVaR    & $7037.13$ & $1188.27$ & $7343.97$ & $10323.50$
 
 \begin{figure}[htbp]
 \centering
-\IfFileExists{p1_cost_distributions.pdf}
-  {\includegraphics[width=0.84\textwidth]{p1_cost_distributions.pdf}}
-  {\fbox{\parbox{0.8\textwidth}{\centering \vspace{1em}
-   Figure file \texttt{p1\_cost\_distributions.pdf} not found.
-   Run \texttt{p1\_relief.py} in this directory to generate it.
-   \vspace{1em}}}}
+% Figure source, tried in order:
+%   1. p1_cost_excel.pdf  - the Excel chart exported to PDF (preferred)
+%   2. p1_cost_excel.png  - the Excel chart saved as a picture
+%   3. p1_cost_distributions.pdf - the matplotlib fallback
+% All three are built from the same numbers.
+\IfFileExists{p1_cost_excel.pdf}
+  {\includegraphics[width=0.92\textwidth]{p1_cost_excel.pdf}}
+  {\IfFileExists{p1_cost_excel.png}
+    {\includegraphics[width=0.92\textwidth]{p1_cost_excel.png}}
+    {\IfFileExists{p1_cost_distributions.pdf}
+      {\includegraphics[width=0.84\textwidth]{p1_cost_distributions.pdf}}
+      {\fbox{\parbox{0.8\textwidth}{\centering \vspace{1em}
+       No figure file found. Export the \texttt{Figure} sheet of
+       \texttt{p1\_cost\_distributions.xlsx} as
+       \texttt{p1\_cost\_excel.pdf}, or run \texttt{p1\_relief.py}
+       for the fallback. \vspace{1em}}}}}}
 \caption{Empirical distribution of total cost over $5{,}000$ draws, for
 the three first-stage plans. The support has ten atoms, so each curve is
-a staircase whose risers sit at the per-scenario costs. Moving from the
-solid curve to the dashed and dotted ones shifts mass to the right in the
-body of the distribution and pulls the rightmost riser to the left.}
+a staircase whose risers sit at the per-scenario costs of Part 6. Moving
+from the solid curve to the dashed and dotted ones shifts mass to the
+right in the body of the distribution and pulls the rightmost riser to the
+left: the constrained plans cost more most of the time and less in the
+worst case, which is the trade the chance and CVaR constraints exist to
+make. Built in \texttt{p1\_cost\_distributions.xlsx}, sheet
+\texttt{Figure}, from the step-expanded cumulative frequencies on its
+\texttt{ChartData} sheet.}
 \end{figure}
 
 \paragraph{Expected performance.} The ordering is monotone and is the
 price of protection: $6416.66 < 6748.95 < 7037.13$. The chance constraint
 costs about $5.2\%$ of expected cost and the CVaR constraint a further
-$4.3\%$. The sample means sit slightly below the model objectives
-($6481.46$, $6800.50$, $7064.02$); the gap is sampling noise, and it is
-accounted for by scenario $8$ appearing at frequency $0.089$ against
-$p_8 = 0.10$, scenario $8$ being the second most expensive atom.
+$4.3\%$. The sample means sit below the model objectives
+($6481.46$, $6800.50$, $7064.02$), and the gap has two distinct parts
+that are worth separating.
+
+\begin{center}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Model & Objective & $\mathbb{E}$ under free & Recourse
+  & Sample mean & Sampling \\
+ & & recourse & relaxation & & noise \\
+\midrule
+Risk neutral       & $6481.4607$ & $6481.4607$ & $0.0000$
+  & $6416.66$ & $64.80$ \\
+Chance constrained & $6800.4958$ & $6783.9833$ & $16.5125$
+  & $6748.95$ & $35.03$ \\
+Chance $+$ CVaR    & $7064.0235$ & $7062.3471$ & $1.6765$
+  & $7037.13$ & $25.22$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The risk-neutral model already minimises expected cost with free
+recourse, so its objective equals the exact expectation to the last
+digit and its entire gap to the sample mean is sampling noise. Scenario
+$8$ drew at frequency $0.089$ against $p_8 = 0.10$ and is the second most
+expensive atom, which accounts for most of that $64.80$.
+
+The two constrained models carry a second gap that is systematic rather
+than statistical. Their objectives price the recourse the model itself
+plans, which must respect the service rows in scenarios $1$ through $9$
+and the CVaR cap. The evaluation drops both and lets the operator
+minimise realised cost, which is weakly cheaper, so the exact
+expectation falls below the objective by $16.51$ and $1.68$
+respectively. That relaxation is not an artefact of the sample; it is
+the same effect as the service-adequacy gap reported below, seen on the
+cost side instead of the service side.
 
 \paragraph{Tail behaviour.} The tail moves in the opposite direction to
 the mean, which is the whole point of the exercise. The standard
