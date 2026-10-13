@@ -61,6 +61,8 @@ ws["A5"].font = NOTE
 
 hdr = ["Scenario", "Probability p_s", "Draw count", "Sample frequency",
        "Risk neutral", "Chance constrained", "Chance + CVaR"]
+hdr += ["p_s x cost, risk neutral", "p_s x cost, chance",
+        "p_s x cost, chance + CVaR"]
 for c, h in enumerate(hdr, 1):
     cell = ws.cell(row=7, column=c, value=h)
     cell.font = H2
@@ -79,6 +81,10 @@ for s in m.S:
     ws.cell(row=r, column=4, value=f"=C{r}/$C${RT}").font = TXT
     for k, (tag, _, _) in enumerate(MODELS):
         ws.cell(row=r, column=5 + k, value=cost[tag][s]).font = INPUT
+        pc = ws.cell(row=r, column=8 + k,
+                     value=f"=$B{r}*{get_column_letter(5+k)}{r}")
+        pc.font = TXT
+        pc.number_format = "#,##0.0000"
     ws.cell(row=r, column=2).number_format = "0.00"
     ws.cell(row=r, column=3).number_format = "#,##0"
     ws.cell(row=r, column=4).number_format = "0.000"
@@ -181,8 +187,16 @@ ws.cell(row=HB + 1, column=1).comment = Comment(
     "service rows and the CVaR cap, which the evaluation drops.", "IE 5311")
 
 for col, w in (("A", 34), ("B", 17), ("C", 17), ("D", 17),
-               ("E", 15), ("F", 15), ("G", 15)):
+               ("E", 15), ("F", 15), ("G", 15),
+               ("H", 17), ("I", 17), ("J", 17)):
     ws.column_dimensions[col].width = w
+
+ws.cell(row=7, column=8).comment = Comment(
+    "Columns H to J hold p_s times the scenario cost. The CVaR sheet needs "
+    "the conditional sum of p_s*cost over the scenarios above a candidate "
+    "eta, and SUMIF cannot multiply two ranges, so the product is formed "
+    "here first. This keeps the CVaR formulas to SUMIF, which every version "
+    "of Excel evaluates the same way.", "IE 5311")
 
 # ------------------------------------------------------------------ CDF sheet
 cs = wb.create_sheet("CDF")
@@ -254,11 +268,15 @@ vs["A2"] = ("CVaR(L) = min over eta of eta + E[(L-eta)+]/(1-alpha). The "
             "MIN. True probabilities p_s are used here, not sample "
             "frequencies, matching p1_relief.py.")
 vs["A2"].font = NOTE
-vs["A3"] = f"alpha"
-vs["A3"].font = H2
-vs["B3"] = ALPHA
-vs["B3"].font = INPUT
-vs["B3"].number_format = "0.00"
+# alpha lives below the blocks: row 3 is the blocks' header row, so a
+# parameter there would be overwritten by the first block's headers.
+vs["A15"] = "alpha"
+vs["A15"].font = H2
+vs["B15"] = ALPHA
+vs["B15"].font = INPUT
+vs["B15"].number_format = "0.00"
+vs["C15"] = "CVaR confidence level, referenced by every bracket formula above"
+vs["C15"].font = NOTE
 
 for k, (tag, _, _) in enumerate(MODELS):
     off = 4 * k
@@ -276,12 +294,14 @@ for k, (tag, _, _) in enumerate(MODELS):
         r = 3 + i
         vs.cell(row=r, column=off + 1, value=(
             f"=CDF!{get_column_letter(6*k+3)}{r}")).font = LINKED
+        pcol = get_column_letter(8 + k)
         vs.cell(row=r, column=off + 2, value=(
-            f"=SUMPRODUCT(Data!$B${lo}:$B${hi},"
-            f"(Data!${dcol}${lo}:${dcol}${hi}-{ec}{r})"
-            f"*(Data!${dcol}${lo}:${dcol}${hi}>{ec}{r}))")).font = TXT
+            f'=SUMIF(Data!${dcol}${lo}:${dcol}${hi},">"&{ec}{r},'
+            f"Data!${pcol}${lo}:${pcol}${hi})"
+            f'-{ec}{r}*SUMIF(Data!${dcol}${lo}:${dcol}${hi},">"&{ec}{r},'
+            f"Data!$B${lo}:$B${hi})")).font = TXT
         vs.cell(row=r, column=off + 3, value=(
-            f"={ec}{r}+{xc}{r}/(1-$B$3)")).font = TXT
+            f"={ec}{r}+{xc}{r}/(1-$B$15)")).font = TXT
         for c in (1, 2, 3):
             vs.cell(row=r, column=off + c).number_format = "#,##0.0000"
     for c, w in ((1, 15), (2, 15), (3, 18), (4, 3)):
@@ -363,6 +383,10 @@ wb.move_sheet("Figure", offset=-4)
 
 for sheet in wb.worksheets:
     sheet.sheet_view.showGridLines = False
+
+# Excel recomputes every formula when the file opens, so the workbook is
+# correct even though it carries no cached values of its own.
+wb.calculation.fullCalcOnLoad = True
 
 OUT = "p1_cost_distributions.xlsx"
 wb.save(OUT)
