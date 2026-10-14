@@ -1,0 +1,305 @@
+IE 5311-001 (D01) PRINCIPLES OF OPTIMIZATION, FALL 2026
+Instructor: Ningji Wei, Industrial, Manufacturing and Systems Engineering
+Notes on Class 01 (62 slides)
+
+Scope rule for these notes: everything below traces to a slide in the
+class 01 deck. Slide numbers appear in brackets.
+
+
+PART A. WHAT THE COURSE GRADES
+
+Slide 6 splits the course into two weights.
+  40 percent: from problem to formulation, from formulation to solution.
+  60 percent: understand the methods deeply, so you improve or develop
+  methods when needed.
+
+Read the split honestly. Modeling earns 40. Theory earns 60. A student
+who models well and proves nothing fails the larger half.
+
+Course outline, slide 12.
+  Part 1: Classic Problems and Formulations
+  Part 2: Linear Programming
+  Part 3: Conic Programming
+
+Exploration credit, slide 12. Statements marked with a double asterisk
+are optional topics. Study one independently, write a concise review,
+earn 1 extra course point. Cap of 10 points.
+
+Two exploration markers already appear in class 01.
+  Slide 26: total unimodularity, and why total unimodularity makes the
+  shortest path linear relaxation exact.
+  Slide 45: non-measurable sets, the Vitali set, and why you exclude
+  some subsets of [0,1] from the sigma-algebra.
+
+Ten points sit on the table for work you control. Start collecting in
+week one, not week twelve.
+
+
+PART B. THE TWO CLASSIFICATION AXES
+
+Slides 8 through 10 give a taxonomy. Every problem in the course gets
+labeled along these axes.
+
+  Constrained or unconstrained
+  Variable type: continuous, discrete, mixed
+  Variable size: compact, huge but finite, infinite dimensional
+  Objective and constraint type: linear, convex, nonlinear (nonconvex)
+  Constraint size: compact, huge but finite, semi-infinite
+  Objective size: single objective, multi-objective
+  Parameters: deterministic or stochastic
+  Decision stages: one-stage or multi-stage
+  Players: single, two-player, multiplayer, simultaneous or sequential
+
+Slide 11 gives the depth axis.
+  Practice: how to model, how to reformulate, how to solve.
+  Theory: basic representations in finite and infinite dimensional
+  vector spaces, polyhedron theory and convex analysis, duality theory,
+  complexity and convergence theory, graph and matroid theory.
+  Algorithm design: gradient methods, simplex, interior point, barrier
+  methods, GPU-enhanced and quantum optimization.
+
+Use the taxonomy as a checklist. The instructor applies it to the diet
+problem on slide 18, to shortest path on slide 27, and to the DFJ
+travelling salesman formulation on slide 32. Expect the same on exams.
+
+
+PART C. THE PROBLEM LIST IN PART 1
+
+  Problem 1, slides 14 to 19. Diet problem, the Stigler diet. Stigler
+  eliminated 62 of 77 foods by heuristic and reached 39.93 dollars.
+  Dantzig solved the same instance optimally seven years later at 39.69
+  dollars using linear programming and the simplex method. The gap is
+  24 cents. That 24 cents started the field.
+  Classification, slide 18: constrained, continuous compact variables,
+  linear compact constraints, single linear objective, deterministic,
+  one-stage, single player.
+  Basic objects introduced on slide 19: linear function, hyperplane,
+  half-space, intersections.
+
+  Problem 2, slides 20 to 27. Shortest path. Graph terminology first:
+  undirected graph, neighborhood, degree, cut, walk, trail, path,
+  cycle, directed graph, in-neighborhood and out-neighborhood,
+  in-degree and out-degree, in-cut and out-cut. Slide 25 asks whether
+  the formulation is exact. Slide 26 answers with total unimodularity.
+  Classification, slide 27: binary variables, compact size, linear
+  constraints, deterministic, one-stage, single player.
+
+  Problem 3, slides 28 to 35. Travelling salesman. Dantzig, Fulkerson
+  and Johnson formulation with subtour elimination constraints. Slide
+  30 names the Miller, Tucker and Zemlin alternative and states the key
+  comparison: the two describe the same feasible solutions, but one is
+  tighter. Slide 32 classifies DFJ as having a huge number of linear
+  constraints. Slides 33 and 34 give the solution scheme: a master
+  problem and a subproblem, plus a proof of finite convergence and a
+  proof of correctness.
+  Group practice, slide 35: longest path in a directed graph, visiting
+  each location at most once.
+
+  Problem 4, slides 36 to 38. Facility location, formulated as a
+  two-player problem.
+
+  Problem 5, slides 39 to 59. Newsvendor, treated five ways.
+  Expectation, slide 40. Robust versions, slides 41 and 42. CVaR,
+  slide 58. Chance constraints, slide 59. Same word problem, five
+  different notions of what optimal means.
+
+  Problem 6, slide 60. Stochastic shortest path.
+
+  Slide 61 previews the convex part: portfolio as convex and
+  multi-objective, inventory as stochastic expectation optimization,
+  robust shortest path as worst-case and semi-infinite, multi-period
+  inventory as a Markov decision process, bilevel pricing as a
+  sequential two-player problem.
+
+
+PART D. THE PROBABILITY BLOCK
+
+Slides 43 through 57 build decision-making under uncertainty from the
+measure-theoretic foundation.
+
+  Slide 44: a probability space is a triple, sample space Omega, a
+  sigma-algebra F, and a probability measure P.
+  Slide 45: examples are a three-faced die and the uniform
+  distribution on [0,1].
+  Slides 46 to 48: probability seen as a density, then as a vector,
+  then the space of all probability measures, in both the finite
+  support and infinite support cases.
+  Slides 49 to 51: random variables as functions and as
+  distributions.
+  Slide 52: expectation as integration and as dual pairing, plus
+  probability, moments and variance.
+  Slide 53: two ways to compare decisions. Aggregate a random variable
+  into a scalar with a risk measure. Or change the underlying
+  probability measure, which is distributionally robust optimization.
+  Slides 55 to 57: Value-at-Risk, Conditional Value-at-Risk, and the
+  dual representation of CVaR as a robust optimization problem.
+
+The phrase expectation as dual pairing on slide 52 is the hinge of the
+whole course. Expectation, linear programming duality and conic duality
+are the same idea written in three settings. Track that thread.
+
+
+PART E. THE PREREQUISITE GATE, SLIDE 7
+
+Slide 7 lists two preliminaries.
+  Linear algebra in the language of vectors, bases, linear maps,
+  kernel and range.
+  Mathematical proof.
+
+Note the phrasing. Not matrix arithmetic. Not row reduction. The
+language of vector spaces and linear maps. A student who computes
+determinants fluently and cannot state what a basis is will struggle by
+week four.
+
+Two self-check problems follow. Both are solved below.
+
+
+SELF-CHECK PROBLEM 1: COORDINATES UNDER TWO BASES
+
+Statement. Work in the vector space of degree-2 polynomials with real
+coefficients. Two bases are given.
+  B1 = {1, x, x^2}
+  B2 = {1 + x, x + x^2, 1 + x^2}
+For the polynomial p(x) = 3 + 5x + 4x^2, find the coefficients under B1
+and under B2.
+
+The idea in plain words. A vector and its list of coordinates are
+different objects. The polynomial p is one fixed thing. The list of
+numbers describing p changes when you change the measuring sticks.
+Slide 7 tests whether you separate the two.
+
+The space. Degree-2 real polynomials form a real vector space of
+dimension 3. Write the space as P2. Addition and scalar multiplication
+act coefficient by coefficient.
+
+Coordinates under B1. The basis B1 = {1, x, x^2} is the standard one.
+Reading p(x) = 3 + 5x + 4x^2 left to right gives the answer directly.
+  [p]_B1 = (3, 5, 4)
+
+Coordinates under B2. You search for real numbers a, b, c with
+  a(1 + x) + b(x + x^2) + c(1 + x^2) = 3 + 5x + 4x^2
+
+Expand the left side and group by power of x.
+  constant term:  a + c
+  x term:         a + b
+  x^2 term:       b + c
+
+Two polynomials are equal exactly when every coefficient matches. That
+gives three linear equations.
+  a + c = 3
+  a + b = 5
+  b + c = 4
+
+Solve by substitution. From the first equation, c = 3 - a. Put that in
+the third: b + 3 - a = 4, so b = 1 + a. Put that in the second:
+a + 1 + a = 5, so 2a = 4 and a = 2. Back-substitute: b = 3, c = 1.
+  [p]_B2 = (2, 3, 1)
+
+Verify by expanding.
+  2(1 + x) + 3(x + x^2) + 1(1 + x^2)
+    = 2 + 2x + 3x + 3x^2 + 1 + x^2
+    = 3 + 5x + 4x^2
+Correct.
+
+The structural reading. Build the change-of-basis matrix M whose
+columns are the B2 vectors written in B1 coordinates.
+       [ 1  0  1 ]        columns are 1+x, x+x^2, 1+x^2
+  M =  [ 1  1  0 ]        rows are the coefficients of 1, x, x^2
+       [ 0  1  1 ]
+Then M [p]_B2 = [p]_B1, so [p]_B2 = M^{-1} [p]_B1. The determinant of M
+equals 2, nonzero, which confirms B2 is a basis rather than a random
+set of three polynomials. Checking that determinant is the step most
+students skip, and skipping it is why they cannot answer the follow-up
+question of whether B2 spans the space.
+
+Why this problem appears in an optimization course. In linear
+programming, a basic feasible solution is exactly a choice of basis for
+a subspace, and the simplex method is a rule for changing basis. If
+changing basis feels unfamiliar now, the simplex method in Part 2 will
+feel like magic instead of like arithmetic.
+
+
+SELF-CHECK PROBLEM 2: KERNEL OF A TRANSPOSE PRODUCT
+
+Statement. Given any matrix A, prove that ker(A^T A) = ker(A).
+
+Notation first, because a proof fails without it. Let A be a real m by
+n matrix. The kernel, also called the null space, is
+  ker(A) = { x in R^n : Ax = 0 }
+Note A^T A is n by n, so both kernels live in the same space R^n and
+comparing them makes sense.
+
+Proof strategy. Set equality needs two inclusions. Show ker(A) is
+contained in ker(A^T A), then show the reverse. One direction is easy
+and one carries the real content.
+
+Direction 1: ker(A) contained in ker(A^T A).
+Take any x with Ax = 0. Multiply both sides on the left by A^T.
+  A^T (A x) = A^T 0 = 0
+By associativity of matrix multiplication, (A^T A) x = 0. So x lies in
+ker(A^T A). This direction uses nothing beyond associativity.
+
+Direction 2: ker(A^T A) contained in ker(A).
+Take any x with A^T A x = 0. Multiply both sides on the left by x^T.
+  x^T A^T A x = x^T 0 = 0
+Regroup the left side using (A x)^T = x^T A^T.
+  (A x)^T (A x) = 0
+The quantity (Ax)^T (Ax) is the sum of squares of the entries of the
+vector Ax. Write y = Ax, then
+  y^T y = y_1^2 + y_2^2 + ... + y_m^2 = 0
+A sum of squares of real numbers equals zero exactly when every term
+equals zero. So every y_i = 0, meaning y = Ax = 0, so x lies in
+ker(A).
+
+Both inclusions hold, therefore ker(A^T A) = ker(A). QED.
+
+Where the proof would break. Direction 2 relies on one fact about the
+real numbers: a sum of squares vanishes only when every term vanishes.
+Over the complex field with the plain transpose, the identity is false.
+
+Counterexample, verified numerically. Let A be the 2 by 1 complex
+matrix with entries 1 and i, so A maps a scalar x to the vector
+(x, i x). Then
+  A^T A = 1*1 + i*i = 1 + (-1) = 0
+The product is the 1 by 1 zero matrix, so ker(A^T A) is all of C. But A
+itself is nonzero, so ker(A) = {0}. The two kernels differ. Replacing
+the transpose by the conjugate transpose fixes the statement, since
+A^* A = 1*1 + (-i)(i) = 2, which is invertible.
+
+Write the field into your proof. Graders take points for silent
+assumptions, and this is the assumption they look for.
+
+Consequences worth carrying forward.
+  rank(A^T A) = rank(A), by the rank-nullity theorem applied to both.
+  A^T A is invertible exactly when A has full column rank.
+  The normal equations A^T A x = A^T b therefore have a unique solution
+  exactly when A has independent columns. That fact underwrites least
+  squares regression and reappears in interior point methods, where
+  each iteration solves a system built from A^T D A with a diagonal
+  weight matrix D.
+
+
+PART F. HONEST ASSESSMENT OF THE COURSE AHEAD
+
+The course reaches conic programming in Part 3 and treats
+distributionally robust optimization, CVaR and chance constraints on
+the way. That is a research-level syllabus taught inside one semester.
+Three consequences.
+
+First, the applied operations research textbooks do not serve you here.
+Hillier and Lieberman, Winston and similar applied texts stop long
+before conic duality. Match your reading to the slides instead.
+Bertsimas and Tsitsiklis, Introduction to Linear Optimization, fits
+Part 2. Ben-Tal and Nemirovski, Lectures on Modern Convex
+Optimization, fits Part 3. Boyd and Vandenberghe, Convex Optimization,
+covers the convex analysis in between. Rockafellar and Uryasev, 2000,
+Optimization of Conditional Value-at-Risk, Journal of Risk, is the
+original source for slides 56 and 57.
+
+Second, the 60 percent theory weight means proof practice beats solver
+practice. Code confirms an answer. Code does not earn the 60.
+
+Third, slide 7 is a diagnostic, not a warm-up. If either self-check
+problem took you more than fifteen minutes unaided, spend this week on
+linear algebra, specifically bases, linear maps, kernel, range and the
+rank-nullity theorem, before touching Part 1 problems.
