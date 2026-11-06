@@ -1,0 +1,115 @@
+%=======================================================================
+%  IE 5311-001 (D01) Exploration Problem EP4
+%  One page, single spacing, 10 pt, 1-inch margins, as the sheet requires.
+%  Packages: geometry, amsmath, amssymb, booktabs, array.
+%
+%  IF IT SPILLS ONTO A SECOND PAGE, delete in this order until it fits.
+%  Each is self-contained and nothing later depends on it.
+%    1. the "Relatedly the matroid polytope ..." sentence in section 3
+%    2. the Partition row of the table in section 4
+%    3. the final sentence of section 5, from "Matroid theory, on the"
+%  Do not cut section 2's Steinitz argument or section 5's first
+%  paragraph: they are what answer the question that was asked.
+%=======================================================================
+\documentclass[10pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+
+\DeclareMathOperator{\rank}{r}
+\DeclareMathOperator{\spn}{span}
+\DeclareMathOperator{\dimop}{dim}
+\DeclareMathOperator{\conv}{conv}
+
+\pagestyle{empty}
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+{\large\bfseries EP4.\quad Matroids: independence without vectors}\\[1pt]
+{\small Lidivine Kengne \quad\textbar\quad IE 5311-001 (D01), Homework 4}
+\vspace{0.3em}
+
+\textbf{1. Definition.}
+A \emph{matroid} is a pair $M = (E, \mathcal{I})$ with $E$ a finite
+ground set and $\mathcal{I} \subseteq 2^{E}$ a family of
+\emph{independent} sets such that
+(I1) $\emptyset \in \mathcal{I}$;
+(I2) $A \in \mathcal{I}$, $B \subseteq A$ imply $B \in \mathcal{I}$
+(hereditary); and
+(I3) $A, B \in \mathcal{I}$ with $|A| < |B|$ imply
+$A \cup \{e\} \in \mathcal{I}$ for some $e \in B \setminus A$
+(exchange).
+Maximal independent sets are \emph{bases}; the \emph{rank} is
+$\rank(S) = \max\{|A| : A \subseteq S,\, A \in \mathcal{I}\}$.
+
+\textbf{2. How this generalizes linear independence.}
+Let $E$ be a finite set of vectors and $\mathcal{I}$ its linearly
+independent subsets. (I1) holds as the empty family is independent;
+(I2) because a vanishing combination over a subset extends by zeros;
+(I3) is the Steinitz exchange: if every $b \in B$ lay in $\spn(A)$ then
+$\spn(B) \subseteq \spn(A)$, so
+$|B| = \dimop\spn(B) \le \dimop\spn(A) = |A|$, contradicting
+$|A| < |B|$; hence some $b \in B \setminus A$ lies outside $\spn(A)$
+and $A \cup \{b\}$ is independent.
+
+What matters is what the axioms \emph{discard}: no field, no
+coordinates, no addition --- only a finite set and a family of subsets.
+Linear independence is one \emph{model} of the axioms; the axioms are
+the theory. Axiom (I3) carries the weight: without it one has an
+\emph{independence system}, whose maximal independent sets may differ
+in size, so rank is ill-defined and dimension means nothing.
+
+\textbf{3. What (I1)--(I3) alone buy.}
+All bases are equicardinal --- the matroid form of ``every basis of $V$
+has $\dimop V$ elements'' --- and $\rank$ is monotone and submodular,
+mirroring $\dimop(U+W) + \dimop(U \cap W) = \dimop U + \dimop W$.
+Sharpest is \textbf{Rado--Edmonds}: an independence system is a matroid
+\emph{if and only if} the greedy algorithm returns a maximum-weight
+basis for every weight function --- on $M(G)$ below this is exactly
+Kruskal's algorithm. Matroids are not merely somewhere greed happens to
+work; they are the structures where it always does. Relatedly the
+matroid polytope $\{x \ge 0 : x(S) \le \rank(S)\ \forall S\}$ is
+integral, a source of integrality distinct from the total unimodularity
+behind shortest path [26].
+
+\textbf{4. Common examples.}
+
+\begin{center}\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+Matroid & Ground set $E$ & Independent sets & Bases \\
+\midrule
+Linear $M[A]$ & columns of a matrix & linearly independent sets
+  & column bases \\
+Graphic $M(G)$ & edges of a graph & forests & spanning forests \\
+Uniform $U_{k,n}$ & $n$ elements & all $A$ with $|A| \le k$
+  & all $k$-subsets \\
+Partition & $E_1 \cup \dots \cup E_m$ & $|A \cap E_i| \le k_i$
+  $\forall i$ & capacity-tight sets \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+
+\textbf{5. Connection to this homework.}
+Affine independence is a matroid too, and Problem 1 is why. It showed
+$\{v_i\}_{i \in [n]}$ is affinely independent exactly when
+$\sum_i \lambda_i v_i = 0$ with $\sum_i \lambda_i = 0$ forces
+$\lambda = 0$ --- precisely the statement that the \emph{lifted}
+vectors $\{(v_i, 1)\}$ are linearly independent. So affine independence
+on a finite point set \emph{is} the linear matroid of those lifted
+vectors, inheriting (I1)--(I3) with no separate proof.
+
+That lift is no ad hoc trick: it is the same homogenization as
+Problem 4's cone $\mathcal{C}_U = \{(tx,t) : x \in U,\, t \ge 0\}$,
+whose slice $t = 1$ is a copy of $U$. Both problems use one device --
+pass to homogeneous coordinates and affine questions become linear.
+Matroid theory, on the course's theory axis [11], pushes it to the
+limit: drop the vectors and keep only the combinatorics.
+
+\end{document}
