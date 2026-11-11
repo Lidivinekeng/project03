@@ -8,6 +8,7 @@ from p1_simplex import simplex
 
 SEED = 5311
 SIZES = [(5, 3), (10, 5), (20, 10), (50, 20), (100, 40)]
+REPS = 7
 
 
 def instance(n, m, rng):
@@ -26,10 +27,13 @@ def gurobi_solve(A, b, c, method=0, presolve=0):
     x = mod.addMVar(n, lb=0.0)
     mod.setObjective(c @ x, GRB.MAXIMIZE)
     mod.addConstr(A @ x <= b)
-    t0 = time.perf_counter()
-    mod.optimize()
-    dt = time.perf_counter() - t0
-    return x.X, mod.ObjVal, int(mod.IterCount), dt
+    best = []
+    for _ in range(REPS):
+        mod.reset()
+        t0 = time.perf_counter()
+        mod.optimize()
+        best.append(time.perf_counter() - t0)
+    return x.X, mod.ObjVal, int(mod.IterCount), float(np.median(best))
 
 
 if __name__ == "__main__":
@@ -40,6 +44,8 @@ if __name__ == "__main__":
     print("=" * 78)
     print(f"seed {SEED}; c_i ~ U(1,10); a_ji ~ U(0.5,5); "
           f"b_j ~ U(0.3,0.6) * sum_i a_ji")
+    print(f"runtimes are the median of {REPS} solves; a single timing at "
+          f"this scale varies by tens of percent")
     print("A > 0 entrywise and b > 0, so the slack basis is feasible and")
     print("the feasible region is bounded, as Problem 1 assumes.\n")
 
@@ -47,9 +53,12 @@ if __name__ == "__main__":
     for n, m in SIZES:
         A, b, c = instance(n, m, rng)
 
-        t0 = time.perf_counter()
-        xs, objs, its, status = simplex(A, b, c)
-        dts = time.perf_counter() - t0
+        reps = []
+        for _ in range(REPS):
+            t0 = time.perf_counter()
+            xs, objs, its, status = simplex(A, b, c)
+            reps.append(time.perf_counter() - t0)
+        dts = float(np.median(reps))
 
         xg, objg, itg, dtg = gurobi_solve(A, b, c)
 
@@ -60,11 +69,11 @@ if __name__ == "__main__":
 
     print(f"{'n':>4} {'m':>4} {'obj simplex':>13} {'obj gurobi':>13} "
           f"{'rel gap':>9} {'it s':>6} {'it g':>6} "
-          f"{'t simplex':>10} {'t gurobi':>10}")
+          f"{'t mine (ms)':>12} {'t grb (ms)':>11} {'ratio':>8}")
     for r in rows:
         print(f"{r[0]:>4} {r[1]:>4} {r[2]:>13.6f} {r[3]:>13.6f} "
               f"{r[4]:>9.2e} {r[5]:>6} {r[6]:>6} "
-              f"{r[7]:>10.4f} {r[8]:>10.4f}")
+              f"{1000*r[7]:>12.3f} {1000*r[8]:>11.3f} {r[7]/r[8]:>7.1f}x")
 
     print(f"\n{'n':>4} {'m':>4} {'max |x_s - x_g|':>17} {'status':>10}")
     for r in rows:
