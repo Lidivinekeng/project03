@@ -215,7 +215,38 @@ predicts.
 \]
 
 All three constraints are tight at $x^\star$, and the dual vector
-$y^\star = (1,1,1)$ gives the shadow price of each resource.
+$y^\star = (1,1,1)$ gives the shadow price of each resource. Dual
+feasibility $A^{\!\top}y^\star = (3,2,1) \ge c$ and
+$b^{\!\top}y^\star = 24 = c^{\!\top}x^\star$ confirm optimality by strong
+duality, independently of the pivoting.
+
+\paragraph{The arithmetic, carried out in Excel.} Part 1 permits a
+calculator or a spreadsheet, and the workbook
+\texttt{p1\_simplex\_tableau.xlsx} carries the computation. It runs the
+equivalent \emph{tableau} form of the same three pivots: the four
+tableaux sit one under another, and each is produced from the one above
+by row operations written as live formulas,
+\[
+  \text{new pivot row} = \frac{\text{old pivot row}}{\text{pivot element}},
+  \qquad
+  \text{every other row} = \text{old row} - (\text{its pivot-column
+  entry}) \times \text{new pivot row},
+\]
+applied to the constraint rows and to the $\bar{c}$ row alike. The ratio
+column is an \texttt{IF} that divides the right-hand side by the
+pivot-column entry only where that entry is positive, which is why it is
+blank on exactly the rows the ratio test skips. Nothing in the sheet is
+a typed-in result except the initial tableau.
+
+The two forms agree at every step: bases
+$\{x_4,x_5,x_6\} \to \{x_1,x_5,x_6\} \to \{x_1,x_2,x_6\} \to
+\{x_1,x_2,x_3\}$, the same reduced-cost rows
+$(3,2,1,0,0,0)$, $(0,2,1,-3,0,0)$, $(0,0,1,-1,-2,0)$,
+$(0,0,0,-1,-1,-1)$, and objectives $0, 12, 20, 24$. In the final
+tableau the entries under the slack columns $x_4, x_5, x_6$ are
+$-1, -1, -1$, so the duals can be read straight off as
+$y^\star = (1,1,1)$ without solving a separate system --- one practical
+advantage of the tableau arrangement over the matrix form used above.
 
 %-----------------------------------------------------------------------
 \subsection*{2.\quad Implementation}
