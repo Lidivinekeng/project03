@@ -37,15 +37,13 @@ The method never reads a constraint matrix. It is handed a convex set
 $K \subseteq \mathbb{R}^n$ through a \emph{separation oracle}: a
 routine that, for any query $z$, either certifies $z \in K$ or returns
 $d \neq 0$ with $d^{\!\top}x < d^{\!\top}z$ for all $x \in K$. That is
-the entire interface, and it is the whole point --- $K$ may have
-exponentially many facets, none ever written down.
-
-Write $E(z,Q) = \{x : (x-z)^{\!\top}Q^{-1}(x-z) \le 1\}$ with
-$Q \succ 0$ and start from any $E_0 \supseteq K$. At step $k$, query
-the oracle at the centre $z_k$. If $z_k \in K$ the search ends.
-Otherwise the returned $d$ gives
-$K \subseteq E_k \cap \{x : d^{\!\top}x \le d^{\!\top}z_k\}$, a half
-ellipsoid, and $E_{k+1}$ is the smallest ellipsoid containing it. With
+the whole interface, and the whole point: $K$ may have exponentially
+many facets, none ever written down. Write $E(z,Q) = \{x : (x-z)^{\!\top}Q^{-1}(x-z) \le 1\}$ with
+$Q \succ 0$ and start from any $E_0 \supseteq K$. Query the oracle at
+the centre $z_k$: if $z_k \in K$ the search ends, otherwise the
+returned $d$ confines $K$ to the half ellipsoid
+$E_k \cap \{x : d^{\!\top}x \le d^{\!\top}z_k\}$, and $E_{k+1}$ is the
+smallest ellipsoid containing that. With
 $g = Q_k d / \sqrt{d^{\!\top} Q_k d}$,
 \[
   z_{k+1} = z_k - \frac{g}{n+1},
@@ -53,59 +51,83 @@ $g = Q_k d / \sqrt{d^{\!\top} Q_k d}$,
   Q_{k+1} = \frac{n^{2}}{n^{2}-1}
             \Bigl( Q_k - \frac{2}{n+1}\, g\,g^{\!\top} \Bigr),
 \]
-a rank-one update costing $O(n^2)$ arithmetic. Whatever the cut, the
-volume contracts by a fixed factor,
-$\vol(E_{k+1})/\vol(E_k) \le e^{-1/(2(n+1))} < 1$, so if $K$ is
-nonempty with $\vol(K) \ge v$ and $\vol(E_0) \le V$, a point of $K$ is
-found within $O(n \log(V/v))$ oracle calls. The contraction weakens as
-$n$ grows --- each cut discards only about a $1/n$ fraction --- which
-is exactly why the method is slow.
+a rank-one update costing $O(n^2)$ arithmetic. The volume contracts by
+a fixed factor whatever the cut, so a point of $K$ is found within
+$O(n \log(V/v))$ calls when $\vol(K) \ge v$ and $\vol(E_0) \le V$. That
+factor is usually quoted as $e^{-1/(2(n+1))}$, but that is only a
+bound. Since
+$g^{\!\top}Q_k^{-1}g = 1$ by construction,
+$\det\bigl(Q_k - \tfrac{2}{n+1}gg^{\!\top}\bigr)
+ = \det Q_k \cdot \tfrac{n-1}{n+1}$, so
+\[
+  \frac{\vol(E_{k+1})}{\vol(E_k)}
+  = \Bigl[\Bigl(\tfrac{n^{2}}{n^{2}-1}\Bigr)^{\! n}
+          \tfrac{n-1}{n+1}\Bigr]^{1/2},
+\]
+a constant attained \emph{exactly} at every step, whatever the cut.
+For $n = 3$ it is $27/32 = 0.84375$ against the bound
+$e^{-1/8} = 0.8825$. The contraction still weakens as $n$ grows ---
+each cut discards about a $1/n$ fraction --- which is why the method
+is slow.
 
 \textbf{2. Historical significance: linear programming is in P.}
-For an LP with rational data of total bit size $L$, a nonempty
-feasible region can be perturbed to have volume at least $2^{-O(nL)}$
-and lies in a ball of radius $2^{O(L)}$. Feeding the trivial oracle
-``scan the rows, return a violated one'' into the bound above gives
-$O(n^2 L)$ iterations, each polynomial. Khachiyan's 1979 proof that
-linear programming is solvable in polynomial time was the first of its
-kind and a genuine surprise: the simplex method then as now was the
-only algorithm anyone ran, and it is exponential in the worst case.
-(Klee and Minty's distorted cube forces Dantzig's rule through all
-$2^n$ vertices.)
+For an LP with rational data of bit size $L$, a nonempty feasible
+region can be perturbed to have volume at least $2^{-O(nL)}$ and lies
+in a ball of radius $2^{O(L)}$, so the trivial oracle ``scan the rows,
+return a violated one'' gives $O(n^2 L)$ iterations. Khachiyan's 1979
+proof was the first of its kind and a surprise: simplex was then as
+now the only algorithm anyone ran, and it is exponential in the worst
+case (Klee and Minty's distorted cube forces Dantzig's rule through
+all $2^n$ vertices).
 
 \textbf{3. The lasting significance: separation equals optimization.}
-The deeper consequence is not about explicit LPs. Because the method
-touches $K$ only through the oracle, its running time depends on the
-number of \emph{variables} and the cost of one separation, never on
-the number of constraints. Gr\"otschel, Lov\'asz and Schrijver turned
-this into an equivalence: for a well-described polyhedron, optimizing
-a linear function over it and separating from it are polynomial-time
-equivalent. An exponential family of constraints is therefore no
-obstacle at all, provided a violated member can be found in polynomial
-time. It is used far more often as a proof device than as a solver.
+Because the method touches $K$ only through the oracle, its running
+time depends on the number of \emph{variables} and the cost of one
+separation, never on the number of constraints. Gr\"otschel, Lov\'asz
+and Schrijver turned this into an equivalence: for a well-described
+polyhedron, optimizing a linear function over it and separating from
+it are polynomial-time equivalent. An exponential family of
+constraints is therefore no obstacle, given a polynomial oracle.
 
 \textbf{4. Where this course has already used the idea.}
-The subtour elimination constraints of the DFJ formulation number
-$2^{|V|}$, and the lazy constraint callback written for Homework~1 is
-a separation oracle for them --- the violated subtour is found by a
-minimum cut, never by enumeration. Homework~5 is the same idea from
-the other side. The Dantzig--Wolfe master holds one column per
-feasible pattern, so its \emph{dual} holds one row per pattern, and
-the pricing subproblem --- a knapsack --- is precisely the separation
-oracle for that dual. Column generation is a cutting-plane method on
-the dual, and the ellipsoid method would solve the same relaxation in
-polynomial time from the same oracle, which is how one proves such a
-relaxation tractable despite exponentially many variables. The matroid
-polytope of EP4 is a third instance: exponentially many rank
-inequalities, separable by submodular minimization.
+The DFJ subtour constraints number $2^{|V|}$, and the lazy callback
+written for Homework~1 is a separation oracle for them, finding the
+violated subtour by a minimum cut. Homework~5 is the same idea from
+the other side: the Dantzig--Wolfe master holds one column per
+pattern, so its \emph{dual} holds one row per pattern, and the pricing
+knapsack is precisely the separation oracle for that dual. Column
+generation is a cutting-plane method on the dual, and the ellipsoid
+method would solve the same relaxation in polynomial time from the
+same oracle --- which is how one proves such a relaxation tractable
+despite exponentially many variables.
 
-\textbf{5. Why nobody solves LPs with it.}
-The iteration bound is close to tight, so there is no early finish on
-easy instances; $Q_k$ grows ill-conditioned and needs careful
-high-precision arithmetic; and there is no warm start. In practice it
-loses to simplex and interior point by orders of magnitude. Its
-standing is as an existence proof and a reduction tool --- the
-instrument that shows a problem is solvable in polynomial time, after
-which somebody else finds an algorithm anyone would run.
+\textbf{5. What it costs, measured.}
+Run on the Part~1 LP, with the oracle scanning the rows of
+$Ax \le b$, $x \ge 0$ and $c^{\!\top}x \ge z^\star - \delta$, starting
+from a ball of radius $20$ (\texttt{ep6\_ellipsoid.py}):
+
+\begin{center}\footnotesize
+\setlength{\tabcolsep}{7pt}
+\begin{tabular}{@{}rrrr@{}}
+\toprule
+$\delta$ & oracle calls & $c^{\!\top}x$ found & observed ratio/step\\
+\midrule
+$10^{0}$  &  29 & 23.807686 & 0.843750\\
+$10^{-1}$ &  69 & 23.942739 & 0.843750\\
+$10^{-2}$ & 105 & 23.992071 & 0.843750\\
+$10^{-3}$ & 158 & 23.999703 & 0.843750\\
+$10^{-4}$ & 182 & 23.999901 & 0.843750\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The ratio is $0.84375$ to six figures every run, as the derivation
+requires. Since $\vol(K) \sim \delta^{n}$, a decade of $\delta$ costs a
+factor $10^{3}$ of volume: $40.7$ calls at the exact rate, $55.3$ at
+the bound, against $40, 36, 53, 24$ observed. The bound overstates the
+work by about a third and the method is still hopeless --- four
+digits cost $182$ oracle calls in $\mathbb{R}^3$, where the simplex of
+Part~2 reached $x^\star = (4,4,4)$ exactly in $3$ pivots. Its standing
+is as an existence proof and a reduction tool.
 
 \end{document}

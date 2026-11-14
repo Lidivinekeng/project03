@@ -8,7 +8,7 @@
 %  IF IT SPILLS ONTO A SECOND PAGE, delete in this order until it fits.
 %    1. the last sentence of section 3 (from "A solver also returns")
 %    2. section 4 entirely (verification is beyond what was asked)
-%    3. the table in section 1, keeping the sentence after it
+%    3. the $10^2$ and $10^3$ rows of the scaling table
 %  Do not cut section 2 or section 3: they are two of the three things
 %  the question explicitly asks for.
 %=======================================================================
@@ -48,27 +48,12 @@ partial solution affects the rest only through the capacity it leaves
 free, so $(i,c)$ is a sufficient state. On the Problem~2 pricing
 instance --- $a = (2,2,5,6,2,5,5)$, $b = 12$, values
 $\pi_i - c_{i1} = (21.7,-14.0,-1.3,-5.7,-0.3,7.3,7.7)$ --- the table is
-
-\begin{center}\footnotesize
-\setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{r rrrrrrrrrrrrr}
-\toprule
-$i \backslash c$ & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11 & 12\\
-\midrule
-0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0\\
-1 & 0.0 & 0.0 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7\\
-\multicolumn{14}{c}{\emph{rows $2,3,4,5$ repeat row $1$ exactly}}\\
-6 & 0.0 & 0.0 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7 & 29.0 & 29.0 & 29.0 & 29.0 & 29.0 & 29.0\\
-7 & 0.0 & 0.0 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7 & 29.3 & 29.3 & 29.3 & 29.3 & 29.3 & 36.7\\
-\bottomrule
-\end{tabular}
-\end{center}
-
-Those four rows repeat because items 2--5 carry negative value, so
-\emph{leave} always wins and the table shows directly that no optimum
-takes them. Backtracking reads the solution off it: item $i$ is taken
-exactly when $f(i,c) \neq f(i-1,c)$, giving $y = (1,0,0,0,0,1,1)$ of
-weight $2+5+5 = 12$, filling the knapsack exactly, at value
+$8 \times 13$ and its rows $2$ to $5$ reproduce row $1$ exactly,
+because those four items carry negative value, so \emph{leave} always
+wins and the table shows directly that no optimum takes them.
+Backtracking reads the solution off it: item $i$ is taken exactly when
+$f(i,c) \neq f(i-1,c)$, giving $y = (1,0,0,0,0,1,1)$ of weight
+$2+5+5 = 12$, filling the knapsack exactly at value
 $f(7,12) = 36.7$.
 
 \textbf{2. Complexity, derived.}
@@ -104,18 +89,40 @@ special treatment, since \emph{leave} is always available.
 (iii) Integer values make the recursion exact in integer arithmetic,
 with no tolerance and no risk of a wrong incumbent. (iv) Runtime is
 deterministic and known in advance, where a search tree is not.
-Conversely, a solver wins once $W$ is large or weights are fractional,
-since the table then explodes or does not exist; once side constraints
-appear, because multiple capacities multiply the state space while a
-solver absorbs extra rows; and on large $n$ where a tight LP bound
-prunes most of the tree. A solver also returns duals and sensitivity
-information, which the table does not.
+Scaling the weights and capacity by a common factor leaves the
+solution unchanged but grows $W$, which prices (i) directly
+(\texttt{ep7\_knapsack\_dp.py}):
+
+\begin{center}\footnotesize
+\setlength{\tabcolsep}{7pt}
+\begin{tabular}{@{}rrrrr@{}}
+\toprule
+scale & $W$ & cells & DP (ms) & Gurobi (ms)\\
+\midrule
+$1$      &      12 &       104 & 0.03 & 0.22\\
+$10$     &     120 &       968 & 0.03 & 0.19\\
+$10^{2}$ &  1\,200 &   9\,608 & 0.03 & 0.20\\
+$10^{3}$ & 12\,000 &  96\,008 & 0.15 & 0.21\\
+$10^{4}$ & 120\,000 & 960\,008 & 2.69 & 0.25\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The DP is flat while the table fits in cache, then linear in $W$ as
+$\Theta(nW)$ predicts, while the solver barely moves; the crossover is
+near $W \approx 2 \times 10^{4}$ for $n = 7$. A solver also wins once
+weights are fractional, since the table does not exist, and once side
+constraints appear, since extra capacities multiply the state space
+while a solver absorbs extra rows.
 
 \textbf{4. Verification.}
 \texttt{ep7\_knapsack\_dp.py} substitutes the recursion for the Gurobi
 pricer in \texttt{p2\_colgen.py} and re-runs column generation. Over
 the 39 pricing calls made, the dynamic program, the Gurobi binary
 program and enumeration of all 128 subsets returned the same reduced
-cost every time, and the run still reached $61.000000$.
+cost every time, and the run still reached $61.000000$. Pricing cost
+$0.041$\,ms per call by table against $0.549$\,ms by solver, a factor
+of $13.5$: the DP vectorised over capacities, the solver timed as
+column generation actually calls it, model construction included.
 
 \end{document}

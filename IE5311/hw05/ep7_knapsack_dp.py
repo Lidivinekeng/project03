@@ -1,4 +1,5 @@
 import itertools
+import time
 
 import numpy as np
 
@@ -9,23 +10,21 @@ def knapsack(value, weight, cap):
     n = len(value)
     f = np.zeros((n + 1, cap + 1))
     for i in range(1, n + 1):
-        w, v = weight[i - 1], value[i - 1]
-        for cpt in range(cap + 1):
-            f[i, cpt] = f[i - 1, cpt]
-            if w <= cpt:
-                f[i, cpt] = max(f[i, cpt], v + f[i - 1, cpt - w])
+        w, v = int(weight[i - 1]), value[i - 1]
+        f[i] = f[i - 1]
+        if w <= cap:
+            f[i, w:] = np.maximum(f[i - 1, w:], v + f[i - 1, :cap + 1 - w])
     take = np.zeros(n)
     cpt = cap
     for i in range(n, 0, -1):
         if f[i, cpt] != f[i - 1, cpt]:
             take[i - 1] = 1.0
-            cpt -= weight[i - 1]
+            cpt -= int(weight[i - 1])
     return f, take
 
 
 def price_dp(j, pi, mu, a, b, c):
-    value = pi - c[:, j]
-    f, take = knapsack(value, a.astype(int), int(b))
+    f, take = knapsack(pi - c[:, j], a.astype(int), int(b))
     return -f[N, int(b)] - mu[j], take, f
 
 
@@ -44,41 +43,32 @@ if __name__ == "__main__":
     print("EP7: the pricing subproblem solved by dynamic programming")
     print("=" * 74)
     print(f"a = {a.astype(int)}   b = {int(b)}")
-    print(f"table size (n+1)(W+1) = {(N + 1) * (int(b) + 1)} cells"
+    print(f"table (n+1)(W+1) = {(N + 1) * (int(b) + 1)} cells"
           f"   vs 2^{N} = {2 ** N} subsets by enumeration")
 
     cols = {(j, 0): np.zeros(N) for j in range(M)}
     nxt = {j: 1 for j in range(M)}
     agree = mismatch = 0
-    shown = False
+    t_dp = t_gb = 0.0
     for t in range(60):
         z, pi, mu, art = master(cols, a, b, c)
         new, added = [], 0
         for j in range(M):
+            t0 = time.perf_counter()
             rc_g, patt_g = price(j, pi, mu, a, b, c)
-            rc_d, patt_d, f = price_dp(j, pi, mu, a, b, c)
+            t_gb += time.perf_counter() - t0
+            t0 = time.perf_counter()
+            rc_d, patt_d, _ = price_dp(j, pi, mu, a, b, c)
+            t_dp += time.perf_counter() - t0
             rc_b, _ = brute(pi - c[:, j], a, b)
-            ok = abs(rc_g - rc_d) < 1e-7 and abs(-rc_b - mu[j] - rc_d) < 1e-7
+            ok = (abs(rc_g - rc_d) < 1e-7
+                  and abs(-rc_b - mu[j] - rc_d) < 1e-7)
             agree += ok
             mismatch += not ok
-            if not shown and t == 4 and j == 0:
-                print(f"\nDP table at iteration {t}, agent {j}")
-                print("values  pi_i - c_i0 =",
-                      np.round(pi - c[:, j], 3))
-                print("weights a_i         =", a.astype(int))
-                print("\n  i\\c " + "".join(f"{x:>7}"
-                                           for x in range(int(b) + 1)))
-                for i in range(N + 1):
-                    print(f"{i:>5} " + "".join(f"{f[i, x]:>7.2f}"
-                                               for x in range(int(b) + 1)))
-                print("backtracked pattern =", patt_d.astype(int))
-                print("Gurobi  pattern     =", patt_g.astype(int))
-                shown = True
-            if rc_d < -1e-7:
-                if not any(np.array_equal(patt_d, cols[j, k])
-                           for (jj, k) in cols if jj == j):
-                    new.append((j, patt_d))
-                    added += 1
+            if rc_d < -1e-7 and not any(np.array_equal(patt_d, cols[j, k])
+                                        for (jj, k) in cols if jj == j):
+                new.append((j, patt_d))
+                added += 1
         if added == 0:
             break
         for j, patt in new:
@@ -86,8 +76,33 @@ if __name__ == "__main__":
             nxt[j] += 1
 
     z_final, _, _, art = master(cols, a, b, c)
-    print(f"\npricing calls checked        : {agree + mismatch}")
+    n_calls = agree + mismatch
+    print(f"\npricing calls checked        : {n_calls}")
     print(f"DP = Gurobi = brute force    : {agree}")
     print(f"disagreements                : {mismatch}")
     print(f"column generation optimum    = {z_final:.6f}")
     print(f"artificials driven to zero   : {art < 1e-7}")
+    print(f"\ntotal pricing time, Gurobi   : {1e3 * t_gb:8.1f} ms"
+          f"  ({1e3 * t_gb / n_calls:.3f} ms per call)")
+    print(f"total pricing time, DP       : {1e3 * t_dp:8.1f} ms"
+          f"  ({1e3 * t_dp / n_calls:.3f} ms per call)")
+    print(f"speedup                      : {t_gb / t_dp:8.1f}x")
+
+    print("\n" + "-" * 74)
+    print("where the DP stops winning: scale the weights and capacity")
+    print("-" * 74)
+    pi = np.array([21.667, -14.0, -1.333, -5.667, -0.333, 7.333, 7.667])
+    print(f"{'scale':>7} {'W':>9} {'cells':>11} {'DP (ms)':>10} "
+          f"{'Gurobi (ms)':>12}")
+    for s in [1, 10, 100, 1000, 10000]:
+        aa, bb = a * s, b * s
+        t0 = time.perf_counter()
+        for _ in range(5):
+            knapsack(pi, aa.astype(int), int(bb))
+        td = (time.perf_counter() - t0) / 5
+        t0 = time.perf_counter()
+        for _ in range(5):
+            price(0, pi + c[:, 0], np.zeros(M), aa, bb, c)
+        tg = (time.perf_counter() - t0) / 5
+        print(f"{s:>7} {int(bb):>9} {(N + 1) * (int(bb) + 1):>11} "
+              f"{1e3 * td:>10.2f} {1e3 * tg:>12.2f}")
