@@ -226,12 +226,11 @@ calculator or a spreadsheet, and the workbook
 equivalent \emph{tableau} form of the same three pivots: the four
 tableaux sit one under another, and each is produced from the one above
 by row operations written as live formulas,
-\[
-  \text{new pivot row} = \frac{\text{old pivot row}}{\text{pivot element}},
-  \qquad
-  \text{every other row} = \text{old row} - (\text{its pivot-column
-  entry}) \times \text{new pivot row},
-\]
+\begin{gather*}
+  \text{new pivot row} = \frac{\text{old pivot row}}{\text{pivot element}},\\
+  \text{every other row} = \text{old row}
+    - (\text{its pivot-column entry}) \times \text{new pivot row},
+\end{gather*}
 applied to the constraint rows and to the $\bar{c}$ row alike. The ratio
 column is an \texttt{IF} that divides the right-hand side by the
 pivot-column entry only where that entry is positive, which is why it is
@@ -301,14 +300,15 @@ $(50,20)$, $(100,40)$.
 
 Gurobi was run with \texttt{Method=0} (primal simplex) and
 \texttt{Presolve=0} so that its iteration count measures the same thing
-as the implementation's. Timings cover the solve only, not model
+as the implementation's. Timings are in milliseconds and cover the solve only, not model
 construction.
 
-\begin{center}
+\begin{center}\small
+\setlength{\tabcolsep}{3.5pt}
 \begin{tabular}{@{}rrrrrrrrrr@{}}
 \toprule
-$n$ & $m$ & objective (mine) & objective (Gurobi) & rel.\ gap
-  & iters mine & iters Gurobi & $t$ mine (ms) & $t$ Gurobi (ms) & ratio$^\dagger$ \\
+$n$ & $m$ & obj.\ mine & obj.\ Gurobi & rel.\ gap
+  & it.\ mine & it.\ grb & $t$ mine & $t$ grb & ratio$^\dagger$ \\
 \midrule
   5 &  3 &  13.068567 &  13.068567 & $0$          &  1 &  1 &  0.076 & 0.035 & $3.4\times$ \\
  10 &  5 &  33.979881 &  33.979881 & $0$          &  3 &  5 &  0.288 & 0.050 & $6.9\times$ \\
@@ -791,13 +791,13 @@ the covering rows unsatisfiable whenever $n > m$ --- the normal case.
 \vspace{1em}
 \hrule
 \vspace{0.6em}
-{\small \texttt{p1\_simplex.py} implements the simplex method and
+{\small \sloppy \texttt{p1\_simplex.py} implements the simplex method and
 reproduces the hand computation of Part 1; \texttt{p1\_benchmark.py}
 generates the instances of Part 3 and runs the comparison of Part 4;
 \texttt{p1\_limitations.py} demonstrates the failures discussed in Part
 5. Problem 2 requires no implementation; \texttt{p2\_colgen.py} is an
 extra check that enumerates the full master, runs column generation from
 artificials, and confirms the two agree and that the master bound
-dominates the LP relaxation.}
+dominates the LP relaxation.\par}
 
 \end{document}
