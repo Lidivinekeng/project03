@@ -1,15 +1,16 @@
 %=======================================================================
 %  IE 5311-001 (D01) Exploration Problem EP7
 %  One page, single spacing, 10 pt, 1-inch margins, as the sheet requires.
-%  Packages: geometry, amsmath, amssymb, booktabs, array.
+%  Content past page 1 is not graded, so the page limit is hard.
+%  Sections map onto the three parts asked: algorithm, derived
+%  complexity, and when DP beats a general-purpose IP solver.
 %
 %  IF IT SPILLS ONTO A SECOND PAGE, delete in this order until it fits.
-%  Each is self-contained and nothing later depends on it.
-%    1. the last sentence of section 3 (from "Greedy by value")
-%    2. the last sentence of section 5
-%    3. the parenthesis in section 2 beginning "(items 2-5"
-%  Do not cut section 4: the link to the Homework 5 pricing subproblem
-%  is what makes this exploration belong to this assignment.
+%    1. the last sentence of section 3 (from "A solver also returns")
+%    2. section 4 entirely (verification is beyond what was asked)
+%    3. in section 1, the sentence beginning "Backtracking then reads"
+%  Do not cut section 2 or section 3: they are two of the three things
+%  the question explicitly asks for.
 %=======================================================================
 \documentclass[10pt]{article}
 
@@ -25,16 +26,16 @@
 
 \begin{document}
 
-{\large\bfseries EP7.\quad The 0--1 knapsack by dynamic programming}\\[1pt]
+{\large\bfseries EP7.\quad Dynamic programming for the knapsack problem}\\[1pt]
 {\small Lidivine Kengne \quad\textbar\quad IE 5311-001 (D01), Homework 5}
 \vspace{0.3em}
 
-\textbf{1. The recursion.}
-Given items $i \in \{1,\dots,n\}$ with values $v_i$, integer weights
-$w_i$ and integer capacity $W$, the 0--1 knapsack problem is
+\textbf{1. The algorithm.}
+Items $i \in \{1,\dots,n\}$ carry values $v_i$ and integer weights
+$w_i$; the capacity $W$ is an integer. The 0--1 knapsack problem is
 $\max \sum_i v_i y_i$ subject to $\sum_i w_i y_i \le W$,
-$y \in \{0,1\}^n$. Let $f(i,c)$ be the best value from the first $i$
-items under capacity $c$. Then $f(0,c) = 0$ and
+$y \in \{0,1\}^n$. Let $f(i,c)$ be the best value obtainable from the
+first $i$ items under capacity $c$. Then $f(0,c) = 0$ and
 \[
   f(i,c) \;=\;
   \begin{cases}
@@ -42,74 +43,64 @@ items under capacity $c$. Then $f(0,c) = 0$ and
     \max\bigl\{\, f(i-1,c),\; v_i + f(i-1,\,c-w_i) \,\bigr\}, & w_i \le c,
   \end{cases}
 \]
-the two branches being \emph{leave} and \emph{take}. It is valid
-because a partial solution influences the rest only through the
-capacity it leaves free, so $(i,c)$ is a sufficient state. The optimum
-is $f(n,W)$, found in $O(nW)$ time and $O(nW)$ memory, the latter
-reducible to $O(W)$ by keeping one row and sweeping $c$ downward.
+the branches being \emph{leave} and \emph{take}. It is valid because a
+partial solution affects the rest only through the capacity it leaves
+free, so $(i,c)$ is a sufficient state. On the Problem~2 pricing
+instance --- $a = (2,2,5,6,2,5,5)$, $b = 12$, values
+$\pi_i - c_{i1} = (21.7,-14.0,-1.3,-5.7,-0.3,7.3,7.7)$ --- the table
+is $8 \times 13$. Its rows $2$ to $5$ reproduce row $1$ exactly,
+because those four items carry negative value, so \emph{leave} always
+wins and the table shows directly that no optimum takes them.
+Backtracking then reads the solution off it: item $i$ is taken exactly
+when $f(i,c) \neq f(i-1,c)$, which gives $y = (1,0,0,0,0,1,1)$, of
+weight $2+5+5 = 12$, filling the knapsack exactly at value
+$f(7,12) = 36.7$.
 
-\textbf{2. A worked table.}
-Take the pricing instance of Homework~5 Problem~2: weights
-$a = (2,2,5,6,2,5,5)$, capacity $b = 12$, and the values
-$\pi_i - c_{i1} = (21.7,\,-14.0,\,-1.3,\,-5.7,\,-0.3,\,7.3,\,7.7)$
-arising at one column generation iteration.
+\textbf{2. Complexity, derived.}
+The state space is $\{0,\dots,n\} \times \{0,\dots,W\}$, of size
+$(n+1)(W+1)$. Each state is evaluated once, and its evaluation is one
+comparison between two entries already computed, hence $\Theta(1)$
+work. Total time is therefore $\Theta(nW)$ and storage $\Theta(nW)$,
+the latter reducible to $\Theta(W)$ by keeping one row and sweeping $c$
+downward so item $i$ is not reused; backtracking adds $\Theta(n)$.
+Compare that with the \emph{input length}: encoding the instance takes
+$\Theta\bigl(n(\log v_{\max} + \log w_{\max}) + \log W\bigr)$ bits, so
+$W$ contributes $\log W$ bits but a factor $W$ to the running time.
+The algorithm is thus exponential in the size of its input,
+$\Theta(nW) = \Theta(n2^{\log W})$, which is what
+\emph{pseudo-polynomial} names, and it contradicts nothing: knapsack
+is NP-hard. Against the $\Theta(2^n)$ of enumeration the gain is real
+all the same --- above, $104$ cells replace $2^7 = 128$ subsets.
 
-\begin{center}\footnotesize
-\setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{r rrrrrrrrrrrrr}
-\toprule
-$i \backslash c$ & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11 & 12\\
-\midrule
-0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0\\
-1 & 0.0 & 0.0 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7\\
-\multicolumn{14}{c}{\emph{rows $2,3,4,5$ repeat row $1$ exactly}}\\
-6 & 0.0 & 0.0 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7 & 29.0 & 29.0 & 29.0 & 29.0 & 29.0 & 29.0\\
-7 & 0.0 & 0.0 & 21.7 & 21.7 & 21.7 & 21.7 & 21.7 & 29.3 & 29.3 & 29.3 & 29.3 & 29.3 & 36.7\\
-\bottomrule
-\end{tabular}
-\end{center}
+\textbf{3. When to prefer it to an IP solver.}
+Four conditions favour the table. (i) Weights are integers and $W$ is
+modest, so $nW$ stays small. (ii) The same structure is solved
+repeatedly with only the objective changing, so the DP rebuilds
+nothing and runs a fixed number of operations where a solver pays
+model construction, presolve and a search on every call. This is
+exactly the Problem~2 pricing subproblem: for agent $j$ the least
+reduced cost column solves
+$\min_{y} \sum_i (c_{ij} - \pi_i) y_i - \mu_j$ subject to
+$\sum_i a_i y_i \le b$, that is
+$-\max_{y} \sum_i (\pi_i - c_{ij}) y_i - \mu_j$, a knapsack whose
+weights $a_i$ and capacity $b$ never change while the values
+$\pi_i - c_{ij}$ change every iteration. Negative values need no
+special treatment, since \emph{leave} is always available.
+(iii) Integer values make the recursion exact in integer arithmetic,
+with no tolerance and no risk of a wrong incumbent. (iv) Runtime is
+deterministic and known in advance, where a search tree is not.
+Conversely, a solver wins once $W$ is large or weights are fractional,
+since the table then explodes or does not exist; once side constraints
+appear, because multiple capacities multiply the state space while a
+solver absorbs extra rows; and on large $n$ where a tight LP bound
+prunes most of the tree. A solver also returns duals and sensitivity
+information, which the table does not.
 
-Those four rows repeat because items 2--5 carry negative value, so the
-\emph{leave} branch always wins and the table shows directly that no
-optimal solution takes them. Backtracking recovers the solution: item
-$i$ is in it exactly when $f(i,c) \neq f(i-1,c)$, giving
-$y = (1,0,0,0,0,1,1)$ of weight $2+5+5 = 12$, which fills the knapsack
-exactly, at value $f(7,12) = 36.7$.
-
-\textbf{3. Pseudo-polynomial, not polynomial.}
-$O(nW)$ looks polynomial but is not. $W$ enters as a \emph{magnitude}
-while the input encodes it in $\lceil \log_2 W \rceil$ bits, so a
-capacity written in 60 bits gives a table with $2^{60}$ columns. The
-method is polynomial in the numeric value of the data, not in its
-length, and contradicts nothing: knapsack is NP-hard. So it is
-excellent for small integer weights and unusable for large or
-fractional ones, where branch and bound takes over. Greedy by
-value-to-weight ratio is no substitute --- it solves the
-\emph{continuous} relaxation exactly, taking one item fractionally,
-which is the Dantzig bound used \emph{inside} branch and bound rather
-than an integer solution.
-
-\textbf{4. Why this is the right tool for Homework 5.}
-The pricing subproblem of the Dantzig--Wolfe reformulation asks, for
-agent $j$ with duals $\pi$ on the covering rows and $\mu_j$ on the
-convexity row, for the pattern of least reduced cost,
-$\min_{y \in X_j} \sum_i (c_{ij} - \pi_i) y_i - \mu_j$ subject to
-$\sum_i a_i y_i \le b$. As $\mu_j$ is constant over $y$, this equals
-$-\max_{y} \sum_i (\pi_i - c_{ij}) y_i - \mu_j$: a 0--1 knapsack with
-values $\pi_i - c_{ij}$ and weights $a_i$. Negative values need no
-special handling, since the \emph{leave} branch is always available.
-Here $a$ is integral with $b = 12$, so the table holds
-$(n+1)(W+1) = 104$ cells against $2^7 = 128$ subsets by enumeration,
-and that gap is structural --- $O(nW)$ against $O(2^n)$ --- not an
-artefact of this instance.
-
-\textbf{5. Verification.}
-\texttt{ep7\_knapsack\_dp.py} replaces the Gurobi pricer of
-\texttt{p2\_colgen.py} by the recursion above and re-runs the entire
-column generation loop. Across the 39 pricing calls made, the dynamic
-program, the Gurobi binary program and exhaustive enumeration over all
-128 subsets returned the same reduced cost every time, and the columns
-so generated still drove the restricted master to $61.000000$ with the
-artificials at zero.
+\textbf{4. Verification.}
+\texttt{ep7\_knapsack\_dp.py} substitutes the recursion for the Gurobi
+pricer in \texttt{p2\_colgen.py} and re-runs column generation. Over
+the 39 pricing calls made, the dynamic program, the Gurobi binary
+program and enumeration of all 128 subsets returned the same reduced
+cost every time, and the run still reached $61.000000$.
 
 \end{document}

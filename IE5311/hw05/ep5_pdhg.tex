@@ -1,15 +1,16 @@
 %=======================================================================
 %  IE 5311-001 (D01) Exploration Problem EP5
 %  One page, single spacing, 10 pt, 1-inch margins, as the sheet requires.
-%  Packages: geometry, amsmath, amssymb, booktabs, array.
+%  Content past page 1 is not graded, so the page limit is hard.
+%  Sections map onto the two parts asked: the main idea of PDHG, and
+%  how cuPDLP applies it to large-scale linear programs.
 %
 %  IF IT SPILLS ONTO A SECOND PAGE, delete in this order until it fits.
-%  Each is self-contained and nothing later depends on it.
-%    1. the last sentence of section 5 (from "The same arithmetic")
-%    2. the "Presolve and scaling" row of the table in section 4
-%    3. the final sentence of section 3
-%  Do not cut section 2 or the restart row of section 4's table: the
-%  saddle-point form and restarting are what the method rests on.
+%    1. the last sentence of section 5 (from "On small and medium")
+%    2. the "Presolve and scaling" row of the table in section 3
+%    3. the last sentence of section 1
+%  Do not cut section 2, section 4, or the restart row of the table:
+%  they are what the question asks for.
 %=======================================================================
 \documentclass[10pt]{article}
 
@@ -19,7 +20,6 @@
 \usepackage{booktabs}
 \usepackage{array}
 
-\DeclareMathOperator*{\argmin}{arg\,min}
 \newcommand{\proj}{\mathrm{proj}}
 
 \pagestyle{empty}
@@ -28,95 +28,91 @@
 
 \begin{document}
 
-{\large\bfseries EP5.\quad First-order LP: PDHG, PDLP and cuPDLP}\\[1pt]
+{\large\bfseries EP5.\quad PDHG and cuPDLP for large-scale linear programs}\\[1pt]
 {\small Lidivine Kengne \quad\textbar\quad IE 5311-001 (D01), Homework 5}
 \vspace{0.3em}
 
-\textbf{1. The wall this is trying to get past.}
-Both mature LP methods solve linear systems. The simplex method keeps a
+\textbf{1. Why a first-order method for LP at all.}
+Both mature methods solve linear systems. Simplex keeps a
 factorization of the basis $A_B$ and updates it; the interior point
-method forms and factors a normal-equations matrix
-$A \Theta A^{\!\top}$ at every iteration. Factorization is where the
-memory goes: even when $A$ is sparse, its factors fill in, and the fill
-is not controlled by the modeller. On instances with hundreds of
-millions of nonzeros the factors do not fit, and the method fails for
-reasons that have nothing to do with the number of iterations. A
-first-order method avoids this by never forming a matrix at all ---
-the price, as always, is accuracy.
+method forms and factors $A \Theta A^{\!\top}$ every iteration. That
+is where the memory goes: even for sparse $A$ the factors fill in, and
+the fill is not under the modeller's control. At hundreds of millions
+of nonzeros the factors stop fitting, and the solver fails for reasons
+unrelated to how many iterations it would have needed.
 
-\textbf{2. The LP as a saddle point.}
-Take $\min c^{\!\top} x$ subject to $Ax \ge b$, $x \ge 0$. Its
-Lagrangian, with multipliers $y \ge 0$ on the rows, is
-\[
-  L(x,y) \;=\; c^{\!\top}x + y^{\!\top}(b - Ax),
-  \qquad x \ge 0,\; y \ge 0,
-\]
-and strong duality says the LP is equivalent to the saddle point
-problem $\min_{x \ge 0} \max_{y \ge 0} L(x,y)$. This is the same
-Lagrangian derived in Problem~2 Part~5. The difference is what one does
-with it: there, $x$ was minimised out to leave a dual to be maximised;
-here \emph{neither} side is eliminated and both are updated together.
-
-\textbf{3. The PDHG iteration.}
-Primal--dual hybrid gradient (Chambolle--Pock) alternates a projected
-gradient step in each variable, with an extrapolation on the primal:
+\textbf{2. The main idea of PDHG.}
+Take $\min c^{\!\top}x$ subject to $Ax \ge b$, $x \ge 0$. Its
+Lagrangian, with $y \ge 0$ on the rows, is
+$L(x,y) = c^{\!\top}x + y^{\!\top}(b - Ax)$, and strong duality makes
+the LP equivalent to the saddle point problem
+$\min_{x \ge 0} \max_{y \ge 0} L(x,y)$. This is the Lagrangian derived
+in Problem~2 Part~5; the difference is that there $x$ was minimised out
+to leave a dual, whereas here \emph{neither} side is eliminated.
+Primal--dual hybrid gradient takes one projected gradient step in each
+variable, extrapolating the primal:
 \[
   x^{k+1} = \proj_{x \ge 0}\!\bigl(x^{k} - \tau (c - A^{\!\top} y^{k})\bigr),
-  \qquad
+  \quad
   y^{k+1} = \proj_{y \ge 0}\!\bigl(y^{k} + \sigma \bigl(b - A(2x^{k+1} - x^{k})\bigr)\bigr).
 \]
-Projection onto a nonnegative orthant or a box is a componentwise
-$\max$, so the entire cost of an iteration is one product $Ax$ and one
-product $A^{\!\top}y$: $O(\mathrm{nnz}(A))$ work and $O(\mathrm{nnz}(A))$
-memory, with no fill-in ever. Convergence requires
-$\tau\sigma\|A\|_2^2 < 1$, and the averaged iterates close the
-primal--dual gap at rate $O(1/k)$. The extrapolated term
-$2x^{k+1}-x^{k}$ is not cosmetic: without it the scheme is the
-Arrow--Hurwicz method, which need not converge at all.
+Projection onto an orthant or a box is a componentwise $\max$, so an
+iteration costs exactly one $Ax$ and one $A^{\!\top}y$:
+$O(\mathrm{nnz}(A))$ work and $O(\mathrm{nnz}(A))$ memory, no fill-in
+ever, no linear system anywhere. Convergence needs
+$\tau\sigma\|A\|_2^2 < 1$ and the averaged iterates close the
+primal--dual gap at rate $O(1/k)$. The term $2x^{k+1}-x^{k}$ is not
+cosmetic: without it this is Arrow--Hurwicz, which need not converge.
 
-\textbf{4. Why the plain method is not enough.}
-Textbook PDHG on a real LP is hopeless --- it stalls after a few
-thousand iterations at one or two digits. PDLP is the engineering that
-makes it work, and the components matter more than the recursion:
+\textbf{3. From PDHG to PDLP.}
+Textbook PDHG on a real LP stalls at one or two digits, so the
+algorithm above is necessary but nowhere near sufficient. PDLP is the
+engineering that closes the gap:
 
 \begin{center}\small
-\begin{tabular}{@{}l p{10.4cm}@{}}
+\begin{tabular}{@{}l p{10.2cm}@{}}
 \toprule
-Restarting & Periodically restart from the running average. On an LP the
-normalised duality gap is \emph{sharp}, and restarting converts the
-$O(1/k)$ rate into a linear one. This is the single largest gain.\\
-Primal weight & Write $\tau = \eta/\omega$, $\sigma = \eta\omega$ and
-adapt $\omega$, so primal and dual residuals fall together rather than
-one racing ahead.\\
-Adaptive step & Replace the fixed bound $\eta < 1/\|A\|_2$, which is
-global and pessimistic, by a step accepted or rejected on a local
-curvature estimate.\\
-Presolve and scaling & Ruiz equilibration and diagonal preconditioning.
-Conditioning of $A$ drives the constant in every bound above.\\
+Restarting & Restart periodically from the running average. On an LP
+the normalised duality gap is \emph{sharp}, which turns the $O(1/k)$
+rate into a linear one. The single largest gain.\\
+Primal weight & Set $\tau = \eta/\omega$, $\sigma = \eta\omega$ and
+adapt $\omega$, so primal and dual residuals fall together.\\
+Adaptive step & Replace the global, pessimistic bound
+$\eta < 1/\|A\|_2$ by a step accepted or rejected on local curvature.\\
+Presolve and scaling & Ruiz equilibration and diagonal
+preconditioning; conditioning of $A$ sets the constant in every bound
+above.\\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\textbf{5. Why a GPU.}
-The iteration is two sparse matrix--vector products and some
-componentwise arithmetic. There is no pivot, no factorization and no
-sequential bottleneck --- exactly the shape a GPU executes well, and
-exactly the shape simplex does not, since a pivot sequence is
-inherently serial. cuPDLP is that port, and it is the reason first-order
-LP moved from a curiosity to something that has since appeared in
-commercial solvers. The same arithmetic that makes the method weak at
-high accuracy makes it parallelise almost perfectly.
+\textbf{4. How cuPDLP applies this at scale.}
+cuPDLP is PDLP moved onto a GPU, and the reason it works is that the
+iteration was already the right shape. Each step is two sparse
+matrix--vector products plus componentwise arithmetic and a few
+reductions for the restart and step-size tests --- all data-parallel,
+all bandwidth-bound, which is precisely what GPU memory systems
+deliver. Nothing in the method is sequential: there is no pivot order
+to respect, no factorization to build, no triangular solve. That is
+the contrast with the alternatives, since a simplex pivot sequence is
+inherently serial and a sparse Cholesky parallelises only within its
+elimination tree while filling in badly. Memory tells the same story:
+the method holds $A$ in sparse form plus a handful of vectors of
+length $n$ and $m$, so instances whose \emph{factors} would exhaust
+host memory have a \emph{footprint} that fits on a single device.
+Large and sparse is therefore the regime where the method is
+strongest, and it is why first-order LP moved from curiosity to
+practice and has since appeared in commercial solvers.
 
-\textbf{6. What it costs, honestly.}
-Three things are given up. Accuracy: relative gaps of $10^{-4}$ to
-$10^{-8}$ are routine, $10^{-9}$ is hard, whereas simplex returns an
-exact vertex. A basis: there is none, so there is no warm start for
-branch and bound and no clean sensitivity analysis --- the duals come
-out approximate, which matters for exactly the shadow-price reading
-done in Homework~1. And predictability: performance depends on
-conditioning in a way that is hard to forecast from the model.
-On small and medium LPs, where a factorization is cheap, simplex and
-interior point remain the right answer; the case for PDHG begins where
-the factors stop fitting in memory.
+\textbf{5. What it costs.}
+Accuracy: relative gaps of $10^{-4}$ to $10^{-8}$ are routine and
+$10^{-9}$ is hard, where simplex returns an exact vertex. No basis:
+hence no warm start for branch and bound and no clean sensitivity
+analysis, the duals coming out approximate --- which matters for
+exactly the shadow-price reading done in Homework~1. And
+predictability: performance tracks conditioning in a way that is hard
+to forecast from the model. On small and medium LPs, where a
+factorization is cheap, simplex and interior point remain correct; the
+case for PDHG begins where the factors stop fitting.
 
 \end{document}

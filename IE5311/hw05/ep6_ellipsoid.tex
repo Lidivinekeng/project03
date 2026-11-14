@@ -1,15 +1,16 @@
 %=======================================================================
 %  IE 5311-001 (D01) Exploration Problem EP6
 %  One page, single spacing, 10 pt, 1-inch margins, as the sheet requires.
-%  Packages: geometry, amsmath, amssymb, booktabs, array.
+%  Content past page 1 is not graded, so the page limit is hard.
+%  Sections map onto the two parts asked: the main idea, and the
+%  historical significance.
 %
 %  IF IT SPILLS ONTO A SECOND PAGE, delete in this order until it fits.
-%  Each is self-contained and nothing later depends on it.
-%    1. the final sentence of section 6 (from "The matroid polytope")
-%    2. the parenthesis in section 4 beginning "(Klee and Minty"
-%    3. the last sentence of section 3
-%  Do not cut section 5 or section 6's first paragraph: the separation
-%  and column generation duality is the point of the exploration.
+%    1. the last sentence of section 4 (from "The matroid polytope")
+%    2. the parenthesis in section 2 beginning "(Klee and Minty"
+%    3. the last sentence of section 1
+%  Do not cut section 3: the separation-equals-optimization result is
+%  the lasting significance the question asks about.
 %=======================================================================
 \documentclass[10pt]{article}
 
@@ -20,7 +21,6 @@
 \usepackage{array}
 
 \DeclareMathOperator{\vol}{vol}
-\DeclareMathOperator{\conv}{conv}
 
 \pagestyle{empty}
 \setlength{\parskip}{0.35em}
@@ -28,90 +28,83 @@
 
 \begin{document}
 
-{\large\bfseries EP6.\quad The ellipsoid method and the separation oracle}\\[1pt]
+{\large\bfseries EP6.\quad The ellipsoid method for linear programming}\\[1pt]
 {\small Lidivine Kengne \quad\textbar\quad IE 5311-001 (D01), Homework 5}
 \vspace{0.3em}
 
-\textbf{1. What the method is given.}
-The ellipsoid method does not read a constraint matrix. It is handed a
-convex set $K \subseteq \mathbb{R}^n$ through a \emph{separation
-oracle}: a routine that, for any query point $z$, either certifies
-$z \in K$ or returns a vector $d \neq 0$ with
-$d^{\!\top}x < d^{\!\top}z$ for every $x \in K$. That is the whole
-interface, and it is the reason the method matters --- the set may have
-exponentially many facets, none of which is ever written down.
+\textbf{1. The main idea.}
+The method never reads a constraint matrix. It is handed a convex set
+$K \subseteq \mathbb{R}^n$ through a \emph{separation oracle}: a
+routine that, for any query $z$, either certifies $z \in K$ or returns
+$d \neq 0$ with $d^{\!\top}x < d^{\!\top}z$ for all $x \in K$. That is
+the entire interface, and it is the whole point --- $K$ may have
+exponentially many facets, none ever written down.
 
-\textbf{2. The iteration.}
 Write $E(z,Q) = \{x : (x-z)^{\!\top}Q^{-1}(x-z) \le 1\}$ with
-$Q \succ 0$, and start from any $E_0 \supseteq K$. At step $k$, query
-the oracle at the centre $z_k$. If $z_k \in K$ the search is over.
+$Q \succ 0$ and start from any $E_0 \supseteq K$. At step $k$, query
+the oracle at the centre $z_k$. If $z_k \in K$ the search ends.
 Otherwise the returned $d$ gives
 $K \subseteq E_k \cap \{x : d^{\!\top}x \le d^{\!\top}z_k\}$, a half
-ellipsoid, and $E_{k+1}$ is taken to be the smallest ellipsoid
-containing it. Setting
+ellipsoid, and $E_{k+1}$ is the smallest ellipsoid containing it. With
 $g = Q_k d / \sqrt{d^{\!\top} Q_k d}$,
 \[
   z_{k+1} = z_k - \frac{g}{n+1},
   \qquad
   Q_{k+1} = \frac{n^{2}}{n^{2}-1}
-            \Bigl( Q_k - \frac{2}{n+1}\, g\,g^{\!\top} \Bigr).
+            \Bigl( Q_k - \frac{2}{n+1}\, g\,g^{\!\top} \Bigr),
 \]
-Each update is a rank-one modification costing $O(n^2)$ arithmetic.
+a rank-one update costing $O(n^2)$ arithmetic. Whatever the cut, the
+volume contracts by a fixed factor,
+$\vol(E_{k+1})/\vol(E_k) \le e^{-1/(2(n+1))} < 1$, so if $K$ is
+nonempty with $\vol(K) \ge v$ and $\vol(E_0) \le V$, a point of $K$ is
+found within $O(n \log(V/v))$ oracle calls. The contraction weakens as
+$n$ grows --- each cut discards only about a $1/n$ fraction --- which
+is exactly why the method is slow.
 
-\textbf{3. Why it terminates.}
-The containing ellipsoid shrinks by a fixed factor regardless of where
-the cut falls:
-\[
-  \frac{\vol(E_{k+1})}{\vol(E_k)} \;\le\; e^{-1/(2(n+1))} \;<\; 1 .
-\]
-So if $K$ is nonempty with $\vol(K) \ge v$ and $\vol(E_0) \le V$, a
-point of $K$ is found within $O\!\left(n \log (V/v)\right)$ oracle
-calls. The factor degrades as $n$ grows --- each cut removes only about
-a $1/n$ fraction --- which is exactly why the method is slow.
+\textbf{2. Historical significance: linear programming is in P.}
+For an LP with rational data of total bit size $L$, a nonempty
+feasible region can be perturbed to have volume at least $2^{-O(nL)}$
+and lies in a ball of radius $2^{O(L)}$. Feeding the trivial oracle
+``scan the rows, return a violated one'' into the bound above gives
+$O(n^2 L)$ iterations, each polynomial. Khachiyan's 1979 proof that
+linear programming is solvable in polynomial time was the first of its
+kind and a genuine surprise: the simplex method then as now was the
+only algorithm anyone ran, and it is exponential in the worst case.
+(Klee and Minty's distorted cube forces Dantzig's rule through all
+$2^n$ vertices.)
 
-\textbf{4. Khachiyan's theorem.}
-For an LP with rational data of total bit size $L$, a nonempty feasible
-region can be perturbed to have volume at least $2^{-O(nL)}$ and is
-contained in a ball of radius $2^{O(L)}$. Feeding the trivial oracle
-``check every row, return a violated one'' into the bound above gives
-$O(n^2 L)$ iterations, each polynomial. This settled in 1979 that
-linear programming lies in P --- the first proof of it, and a genuine
-surprise, since the simplex method then as now was the only practical
-algorithm and is exponential in the worst case. (Klee and
-Minty's distorted cube forces Dantzig's rule through all $2^n$
-vertices.)
-
-\textbf{5. Separation equals optimization.}
+\textbf{3. The lasting significance: separation equals optimization.}
 The deeper consequence is not about explicit LPs. Because the method
-touches $K$ only through the oracle, the running time depends on the
-number of \emph{variables} and the cost of one separation, never on the
-number of constraints. Gr\"otschel, Lov\'asz and Schrijver turned this
-into an equivalence: for a well-described polyhedron, optimizing a
-linear function and separating from the set are polynomial-time
+touches $K$ only through the oracle, its running time depends on the
+number of \emph{variables} and the cost of one separation, never on
+the number of constraints. Gr\"otschel, Lov\'asz and Schrijver turned
+this into an equivalence: for a well-described polyhedron, optimizing
+a linear function over it and separating from it are polynomial-time
 equivalent. An exponential family of constraints is therefore no
-obstacle provided a violated member can be found in polynomial time.
+obstacle at all, provided a violated member can be found in polynomial
+time. It is used far more often as a proof device than as a solver.
 
-\textbf{6. Where this course has already used the idea.}
-The subtour elimination constraints of the DFJ travelling salesman
-formulation number $2^{|V|}$, and the lazy constraint callback written
-for Homework~1 is a separation oracle for them: the violated subtour is
-found by a minimum cut, never by enumeration. Homework~5 is the same
-idea seen from the other side. The Dantzig--Wolfe master has one column
-per feasible pattern, so its \emph{dual} has one row per pattern, and
+\textbf{4. Where this course has already used the idea.}
+The subtour elimination constraints of the DFJ formulation number
+$2^{|V|}$, and the lazy constraint callback written for Homework~1 is
+a separation oracle for them --- the violated subtour is found by a
+minimum cut, never by enumeration. Homework~5 is the same idea from
+the other side. The Dantzig--Wolfe master holds one column per
+feasible pattern, so its \emph{dual} holds one row per pattern, and
 the pricing subproblem --- a knapsack --- is precisely the separation
 oracle for that dual. Column generation is a cutting-plane method on
 the dual, and the ellipsoid method would solve the same relaxation in
 polynomial time from the same oracle, which is how one proves such a
-relaxation is tractable despite having exponentially many variables.
-The matroid polytope of EP4 is a third instance: exponentially many
-rank inequalities, separable by submodular minimization.
+relaxation tractable despite exponentially many variables. The matroid
+polytope of EP4 is a third instance: exponentially many rank
+inequalities, separable by submodular minimization.
 
-\textbf{7. Why nobody solves LPs with it.}
-The bound is close to tight, so there is no early finish on easy
-instances; $Q_k$ grows ill-conditioned and needs careful exact or
+\textbf{5. Why nobody solves LPs with it.}
+The iteration bound is close to tight, so there is no early finish on
+easy instances; $Q_k$ grows ill-conditioned and needs careful
 high-precision arithmetic; and there is no warm start. In practice it
-is beaten by orders of magnitude by both simplex and interior point.
-Its standing is as an existence proof and a reduction tool --- the
+loses to simplex and interior point by orders of magnitude. Its
+standing is as an existence proof and a reduction tool --- the
 instrument that shows a problem is solvable in polynomial time, after
 which somebody else finds an algorithm anyone would run.
 
