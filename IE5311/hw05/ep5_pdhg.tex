@@ -1,0 +1,132 @@
+%=======================================================================
+%  IE 5311-001 (D01) Exploration Problem EP5
+%  One page, single spacing, 10 pt, 1-inch margins, as the sheet requires.
+%  Content past page 1 is not graded, so the page limit is hard.
+%  Sections map onto the two parts asked: the main idea of PDHG, and
+%  how cuPDLP applies it to large-scale linear programs.
+%
+%  IF IT SPILLS ONTO A SECOND PAGE, delete in this order until it fits.
+%    1. the last sentence of section 5 (from "At this size")
+%    2. the last sentence of section 4 (from "Large and sparse")
+%    3. the n=5 row of the measurement table in section 3
+%  Do not cut section 2, section 4, or the restart row of the table:
+%  they are what the question asks for.
+%=======================================================================
+\documentclass[10pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+
+\newcommand{\proj}{\mathrm{proj}}
+
+\pagestyle{empty}
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+{\large\bfseries EP5.\quad PDHG and cuPDLP for large-scale linear programs}\\[1pt]
+{\small Lidivine Kengne \quad\textbar\quad IE 5311-001 (D01), Homework 5}
+\vspace{0.3em}
+
+\textbf{1. Why a first-order method for LP at all.}
+Both mature methods solve linear systems: simplex factorizes the basis
+$A_B$, interior point factors $A \Theta A^{\!\top}$ every iteration.
+That is where the memory goes, because even for sparse $A$ the factors
+fill in and the fill is not under the modeller's control. Past
+hundreds of millions of nonzeros they stop fitting, and the solver
+fails for reasons unrelated to the iterations it needed.
+
+\textbf{2. The main idea of PDHG.}
+Take $\min c^{\!\top}x$ subject to $Ax \ge b$, $x \ge 0$. Its
+Lagrangian, with $y \ge 0$ on the rows, is
+$L(x,y) = c^{\!\top}x + y^{\!\top}(b - Ax)$, and strong duality makes
+the LP equivalent to the saddle point problem
+$\min_{x \ge 0} \max_{y \ge 0} L(x,y)$. This is the Lagrangian derived
+in Problem~2 Part~5; the difference is that there $x$ was minimised out
+to leave a dual, whereas here \emph{neither} side is eliminated.
+Primal--dual hybrid gradient takes one projected gradient step in each
+variable, extrapolating the primal:
+\[
+  x^{k+1} = \proj_{x \ge 0}\!\bigl(x^{k} - \tau (c - A^{\!\top} y^{k})\bigr),
+  \quad
+  y^{k+1} = \proj_{y \ge 0}\!\bigl(y^{k} + \sigma \bigl(b - A(2x^{k+1} - x^{k})\bigr)\bigr).
+\]
+Projection onto an orthant or a box is a componentwise $\max$, so an
+iteration costs exactly one $Ax$ and one $A^{\!\top}y$:
+$O(\mathrm{nnz}(A))$ work and $O(\mathrm{nnz}(A))$ memory, no fill-in
+ever, no linear system anywhere. Convergence needs
+$\tau\sigma\|A\|_2^2 < 1$ and the averaged iterates close the
+primal--dual gap at rate $O(1/k)$. The term $2x^{k+1}-x^{k}$ is not
+cosmetic: without it this is Arrow--Hurwicz, which need not converge.
+
+\textbf{3. What the plain iteration actually does.}
+Run on the five random instances of Problem~3, against the revised
+simplex of Part~2, counting iterations to drive primal residual, dual
+residual and relative gap all below a tolerance
+(\texttt{ep5\_pdhg.py}):
+
+\begin{center}\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}rr r rr rrr@{}}
+\toprule
+$n$ & $m$ & simplex & plain $10^{-4}$ & plain $10^{-6}$
+  & rs.\ $10^{-4}$ & rs.\ $10^{-6}$ & rs.\ $10^{-8}$\\
+\midrule
+  5 &  3 &  1 &  15\,400 & --- &    250 &    375 &    525\\
+ 20 & 10 &  9 &  53\,775 & --- & 1\,075 & 2\,050 & 3\,025\\
+ 50 & 20 & 20 & 241\,900 & --- & 7\,125 & 47\,350 & 90\,850\\
+100 & 40 & 31 & ---       & --- & 15\,200 & 42\,100 & 83\,625\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+A dash is ``not reached in $400\,000$ iterations''. Plain PDHG never
+got six digits on \emph{any} instance, and on the largest never got
+four. Restarting here is the crudest version --- average the iterates
+and restart from the average every $100$ steps --- and it buys two to
+three orders of magnitude. The engineering below is therefore not
+optional.
+
+\emph{Restarting} is the largest: on an LP the normalised duality gap
+is \emph{sharp}, so restarting from the running average converts the
+$O(1/k)$ rate into a linear one, which is the effect the table above
+measures. A \emph{primal weight} splits the step as $\tau = \eta/\omega$,
+$\sigma = \eta\omega$ and adapts $\omega$ so primal and dual residuals
+fall together. An \emph{adaptive step} replaces the global, pessimistic
+bound $\eta < 1/\|A\|_2$ by one accepted or rejected on local
+curvature. \emph{Presolve and Ruiz scaling} come first in execution and
+last in glamour: conditioning of $A$ sets the constant in every bound
+above.
+
+\textbf{4. PDLP, and how cuPDLP applies it at scale.}
+cuPDLP is PDLP moved onto a GPU, and the reason it works is that the
+iteration was already the right shape. Each step is two sparse
+matrix--vector products plus componentwise arithmetic and a few
+reductions for the restart and step-size tests --- all data-parallel,
+all bandwidth-bound, which is precisely what GPU memory systems
+deliver. Nothing in the method is sequential: there is no pivot order
+to respect, no factorization to build, no triangular solve. That is
+the contrast with the alternatives, since a simplex pivot sequence is
+inherently serial and a sparse Cholesky parallelises only within its
+elimination tree while filling in badly. Memory tells the same story:
+the method holds $A$ in sparse form plus a handful of vectors of
+length $n$ and $m$, so instances whose \emph{factors} would exhaust
+host memory have a \emph{footprint} that fits on a single device.
+Large and sparse is therefore the regime where the method is
+strongest, and why first-order LP has since appeared in commercial
+solvers.
+
+\textbf{5. What it costs.}
+The table prices the first cost: accuracy is bought by iteration
+count, where simplex returns an exact vertex in $31$ pivots. There is
+also no basis, so no warm start for branch and bound and no clean
+sensitivity analysis --- the duals come out approximate, which matters
+for exactly the shadow-price reading done in Homework~1. At this size
+simplex is the right answer; the case for PDHG begins where the
+factors stop fitting.
+
+\end{document}
