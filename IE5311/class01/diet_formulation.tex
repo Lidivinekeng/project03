@@ -1,0 +1,158 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+\theoremstyle{definition}
+\newtheorem*{remark}{Remark}
+
+\title{IE 5311-001 (D01) Principles of Optimization\\[2pt]
+       \large Part 1, Problem 1: The Diet Problem (Stigler Diet)}
+\author{Lidivine Kengne}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Problem Statement}
+
+Slide 15 gives the original 1945 version: for a moderately active man
+weighing 154 pounds, how much of each of 77 foods should be eaten daily
+so that his intake of nine nutrients is at least the recommended dietary
+allowances suggested by the National Research Council in 1943, at
+minimum cost?
+
+Stigler's heuristic eliminated 62 foods and reached \$39.93. Dantzig
+later solved the same instance to optimality at \$39.69 using linear
+programming and the simplex method (slide 16).
+
+The formulation below is written for arbitrary food and nutrient sets.
+Substituting the full 77 foods and 9 nutrients requires changing data
+only, never the model.
+
+\section{Sets}
+
+\[
+\begin{array}{ll}
+  I & \text{set of available foods, indexed by } i \\[2pt]
+  J & \text{set of nutrients under control, indexed by } j
+\end{array}
+\]
+
+\section{Parameters}
+
+\[
+\begin{array}{lll}
+  c_i    & \text{cost per unit of food } i                    & [\text{\$}/\text{unit}] \\[2pt]
+  a_{ij} & \text{amount of nutrient } j \text{ per unit of food } i & [\text{g}/\text{unit}] \\[2pt]
+  \ell_j & \text{minimum required daily level of nutrient } j  & [\text{g}/\text{day}] \\[2pt]
+  u_j    & \text{maximum allowed daily level of nutrient } j   & [\text{g}/\text{day}] \\[2pt]
+  f_i    & \text{maximum daily servings of food } i            & [\text{unit}/\text{day}]
+\end{array}
+\]
+
+All parameters are known constants, with
+$c_i \ge 0$, $a_{ij} \ge 0$, and $0 \le \ell_j \le u_j$ for all
+$i \in I$ and $j \in J$.
+
+\section{Decision Variables}
+
+\[
+  x_i \;=\; \text{units of food } i \text{ consumed per day},
+  \qquad x_i \in \mathbb{R}_{+}, \quad i \in I .
+\]
+
+\section{Model}
+
+\begin{align}
+  \min_{x} \quad
+    & \sum_{i \in I} c_i\, x_i
+      \label{eq:obj} \\[4pt]
+  \text{s.t.} \quad
+    & \sum_{i \in I} a_{ij}\, x_i \;\ge\; \ell_j,
+      && \forall\, j \in J
+      \label{eq:lower} \\[2pt]
+    & \sum_{i \in I} a_{ij}\, x_i \;\le\; u_j,
+      && \forall\, j \in J
+      \label{eq:upper} \\[2pt]
+    & 0 \;\le\; x_i \;\le\; f_i,
+      && \forall\, i \in I
+      \label{eq:bounds}
+\end{align}
+
+Objective \eqref{eq:obj} minimizes total daily cost. Constraints
+\eqref{eq:lower} enforce the recommended minimum for every nutrient, and
+\eqref{eq:upper} the corresponding maximum. Bounds \eqref{eq:bounds}
+keep consumption nonnegative and cap the servings of any single food.
+
+\section{Compact Matrix Form}
+
+Let $x \in \mathbb{R}^{|I|}$ collect the decision variables,
+$c \in \mathbb{R}^{|I|}$ the costs, $f \in \mathbb{R}^{|I|}$ the serving
+caps, and $\ell, u \in \mathbb{R}^{|J|}$ the nutrient bounds. Define the
+nutrient matrix $A \in \mathbb{R}^{|J| \times |I|}$ by
+$A_{ji} = a_{ij}$, so that $Ax$ is the vector of daily intakes. The
+model becomes
+\[
+  \min_{x} \; c^{\top} x
+  \qquad \text{subject to} \qquad
+  \ell \le A x \le u, \qquad 0 \le x \le f .
+\]
+
+\section{Classification (slide 18 taxonomy)}
+
+\[
+\begin{array}{ll}
+  \text{Constrained or unconstrained}      & \text{constrained} \\
+  \text{Variable type}                     & \text{continuous} \\
+  \text{Variable size}                     & \text{compact, } |I| \text{ variables} \\
+  \text{Objective type}                    & \text{linear} \\
+  \text{Constraint type}                   & \text{linear} \\
+  \text{Constraint size}                   & \text{compact, } 2|J| + 2|I| \text{ inequalities} \\
+  \text{Objective size}                    & \text{single objective} \\
+  \text{Parameters}                        & \text{deterministic} \\
+  \text{Decision stage}                    & \text{one-stage} \\
+  \text{Number of players}                 & \text{single}
+\end{array}
+\]
+
+Every entry is linear with compact size, which places this problem
+squarely in Part 2 of the course.
+
+\section{Geometry (slide 19)}
+
+Each constraint in \eqref{eq:lower} through \eqref{eq:bounds} is a
+linear inequality in $x$, so each defines a half-space in
+$\mathbb{R}^{|I|}$, and the boundary of each is a hyperplane. For
+nutrient $j$ the equation
+\[
+  \sum_{i \in I} a_{ij}\, x_i = \ell_j
+\]
+is the hyperplane on which the minimum requirement is met exactly. The
+feasible region is the intersection of $2|J| + 2|I|$ half-spaces,
+therefore a polyhedron. Since $0 \le x \le f$ bounds every coordinate,
+the region is a polytope: bounded, closed, and convex.
+
+\begin{remark}[Why the serving caps matter]
+Stigler's original model had no upper bounds $f_i$ and no upper bounds
+$u_j$. With cost minimization as the only pressure, the optimal solution
+concentrates on whichever few foods deliver nutrients most cheaply,
+producing the monotonous diets the problem became known for. A solved
+instance of the formulation above shows the same effect: the optimum
+loads onto two foods and leaves the rest at zero. Adding $f_i$ and $u_j$
+does not change the structure of the model, only its data.
+\end{remark}
+
+\begin{remark}[Reading the dual]
+Each constraint in \eqref{eq:lower} carries a shadow price: the increase
+in minimum daily cost caused by raising $\ell_j$ by one gram. Nutrients
+whose constraints are slack at the optimum carry a shadow price of zero.
+This is the dual information that slide 52 generalizes as expectation
+written through dual pairing, and that Part 2 formalizes as linear
+programming duality.
+\end{remark}
+
+\end{document}

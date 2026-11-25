@@ -1,0 +1,704 @@
+%=======================================================================
+%  IE 5311-001 (D01) Optional Course Project
+%  CVRP: MIP, Dantzig--Wolfe decomposition and column generation
+%  Instance E-n22-k4 (CVRPLIB). At most 10 pages.
+%  Packages: geometry, amsmath, amssymb, booktabs, array.
+%=======================================================================
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+
+\DeclareMathOperator*{\minimize}{min}
+\DeclareMathOperator{\conv}{conv}
+\newcommand{\T}{^{\!\top}}
+\newcommand{\R}{\mathbb{R}}
+
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{0pt}
+\setlength{\abovedisplayskip}{5pt}
+\setlength{\belowdisplayskip}{5pt}
+
+\title{\vspace{-1.2cm}Capacitated Vehicle Routing by Dantzig--Wolfe
+       Decomposition and Column Generation\\
+       \large IE 5311-001 (D01) Optional Course Project}
+\author{Lidivine Kengne}
+\date{Fall 2026}
+
+\begin{document}
+\maketitle
+\vspace{-0.9cm}
+
+\section{Data and Preliminary Analysis}
+
+\paragraph{(a) Notation.}
+Let $V = \{1,\dots,n\}$ be the node set with $n = 22$, the depot being
+node $o = 1$ and $C = V \setminus \{o\}$ the $21$ customers. Let
+$\mathcal{K} = \{1,\dots,K\}$ index the identical vehicles, $K = 4$, and
+$A = \{(i,j) : i,j \in V,\; i \neq j\}$ the arc set. Each customer
+$i \in C$ has demand $d_i > 0$ (with $d_o = 0$), each vehicle has
+capacity $Q = 6000$, and each arc carries cost
+\[
+  c_{ij} \;=\;
+  \Bigl\lfloor \sqrt{(x_i - x_j)^2 + (y_i - y_j)^2} + 0.5 \Bigr\rfloor ,
+  \qquad (i,j) \in A,
+\]
+the CVRPLIB \texttt{EUC\_2D} convention: Euclidean distance between the
+node coordinates rounded to the nearest integer. The cost matrix is
+symmetric and satisfies the triangle inequality.
+
+\paragraph{(b) Total demand and a fleet lower bound.}
+Summing the demands gives
+\[
+  D \;=\; \sum_{i \in C} d_i \;=\; 22{,}500 .
+\]
+Any feasible solution assigns every customer to exactly one vehicle and
+no vehicle may carry more than $Q$, so the fleet must satisfy
+$K \cdot Q \ge D$, giving the bound
+\[
+  K \;\ge\; \Bigl\lceil \frac{D}{Q} \Bigr\rceil
+  \;=\; \Bigl\lceil \frac{22{,}500}{6{,}000} \Bigr\rceil
+  \;=\; \lceil 3.75 \rceil \;=\; 4 .
+\]
+The instance name specifies $K = 4$, so the bound is tight and the
+fleet has only $KQ - D = 24{,}000 - 22{,}500 = 1{,}500$ units of total
+slack, about $6.25\%$ of capacity.
+
+\emph{Does meeting the bound guarantee feasibility?} No. The bound is
+necessary, not sufficient, because it uses only \emph{aggregate}
+capacity and so treats demand as perfectly divisible. A customer's
+demand cannot be split, so the real question is whether the $21$
+indivisible demands admit a packing into $4$ bins of size $Q$, which
+is a bin-packing feasibility problem and is itself NP-complete.
+
+The two can come apart. Take $K = 2$, $Q = 6{,}000$ and three
+customers of demand $4{,}000$ each. Then $D = 12{,}000$ and
+$KQ = 12{,}000 \ge D$, so the bound is met, with equality. Yet no
+vehicle can serve two of these customers, since $8{,}000 > Q$, so two
+vehicles serve at most two customers between them and the third cannot
+be served at all: the instance is infeasible while passing the test.
+For E-n22-k4 a feasible packing does exist, but that is established by
+exhibiting a solution --- Section~3 does so --- not by the counting
+bound.
+
+\paragraph{(c) Data check.}
+With CVRPLIB numbering, node $1$ is the depot at $(145,215)$, node $2$
+is at $(151,264)$ and node $3$ at $(159,261)$:
+
+\begin{center}
+\begin{tabular}{@{}lllrr@{}}
+\toprule
+arc & from & to & exact distance & $c_{ij}$\\
+\midrule
+$(1,2)$ & $(145,215)$ & $(151,264)$ & 49.365980 & 49\\
+$(1,3)$ & $(145,215)$ & $(159,261)$ & 48.083261 & 48\\
+$(2,3)$ & $(151,264)$ & $(159,261)$ &  8.544004 &  9\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The demands run from $100$ to $2{,}500$; since $\max_i d_i = 2500 \le Q$
+every customer is individually servable, so no instance-level
+infeasibility arises from a single oversized demand.
+
+\section{MIP Formulation and Dantzig--Wolfe Decomposition}
+
+\subsection{(a) Original vehicle-indexed MIP}
+
+\paragraph{Decision variables.} For $(i,j) \in A$ and $k \in \mathcal{K}$,
+\[
+  x_{ijk} =
+  \begin{cases}
+    1, & \text{vehicle } k \text{ traverses arc } (i,j),\\
+    0, & \text{otherwise,}
+  \end{cases}
+  \qquad\text{and write}\qquad
+  y_{ik} \;=\; \sum_{j \in V \setminus \{i\}} x_{jik}
+\]
+for the derived indicator that vehicle $k$ visits node $i$. The
+formulation is
+\begin{align}
+  \minimize \quad & \sum_{k \in \mathcal{K}} \sum_{(i,j) \in A}
+      c_{ij}\, x_{ijk} \label{eq:obj}\\
+  \text{s.t.}\quad
+  & \sum_{k \in \mathcal{K}} y_{ik} = 1,
+    && i \in C, \label{eq:visit}\\
+  & \sum_{j \neq h} x_{jhk} \;=\; \sum_{j \neq h} x_{hjk},
+    && h \in V,\; k \in \mathcal{K}, \label{eq:flow}\\
+  & \sum_{j \in C} x_{ojk} = 1,
+    && k \in \mathcal{K}, \label{eq:depart}\\
+  & \sum_{i \in C} d_i\, y_{ik} \;\le\; Q,
+    && k \in \mathcal{K}, \label{eq:cap}\\
+  & \sum_{i \in S} \sum_{j \in S \setminus \{i\}} x_{ijk}
+      \;\le\; |S| - 1,
+    && S \subseteq C,\; |S| \ge 2,\; k \in \mathcal{K},
+    \label{eq:sec}\\
+  & x_{ijk} \in \{0,1\},
+    && (i,j) \in A,\; k \in \mathcal{K}. \label{eq:bin}
+\end{align}
+
+\paragraph{How the requirements are enforced.}
+(i) Constraint \eqref{eq:visit} states that across all vehicles node
+$i$ is entered exactly once, so every customer is served exactly once
+and demands are never split. (ii) Constraint \eqref{eq:depart} forces
+each vehicle to leave the depot exactly once, towards a customer, so
+its route is nonempty; \eqref{eq:flow} balances in-degree against
+out-degree at every node, which forces the vehicle to return to the
+depot and makes its arc set a union of closed walks. (iii) Constraint
+\eqref{eq:cap} charges each vehicle the demand of the nodes it visits
+and caps it at $Q$. (iv) Constraint \eqref{eq:sec} is the
+Dantzig--Fulkerson--Johnson family: any customer subset $S$ may carry
+at most $|S|-1$ internal arcs of a single vehicle, which forbids a
+closed walk contained entirely in $C$. Together with \eqref{eq:flow}
+and \eqref{eq:depart} this leaves exactly one cycle per vehicle, and it
+passes through the depot. The formulation has $|A| \cdot K = 1{,}848$
+binaries; \eqref{eq:sec} is exponential in $|C|$ and is therefore
+imposed lazily, as described in Section~3.
+
+\paragraph{Classification (slides 8--10).} Constrained; discrete
+variables, huge but finite; linear objective and constraints;
+deterministic; single stage; single player.
+
+\subsection{(b) Dantzig--Wolfe reformulation}
+
+\paragraph{Which constraints couple.} Only \eqref{eq:visit} involves
+more than one vehicle: it is the single family tying the $K$ vehicles
+together. Constraints \eqref{eq:flow}--\eqref{eq:bin} are separable by
+$k$: for each vehicle they describe that vehicle's own feasible routes
+and say nothing about the others. This is exactly the block-angular
+structure Dantzig--Wolfe exploits.
+
+\paragraph{The subproblem.} For vehicle $k$ define
+\[
+  X_k \;=\; \bigl\{\, x^k \in \{0,1\}^{A} \;:\;
+    \eqref{eq:flow},\,\eqref{eq:depart},\,\eqref{eq:cap},\,\eqref{eq:sec}
+    \text{ hold for } k \,\bigr\} .
+\]
+By the argument above, $X_k$ is precisely the set of incidence vectors
+of \emph{feasible single-vehicle routes}: elementary cycles through the
+depot whose total demand does not exceed $Q$. It is a finite set of
+$0$--$1$ points, so $\conv(X_k)$ is a polytope whose extreme points are
+the elements of $X_k$ themselves. Enumerate them as
+$x^{k,1},\dots,x^{k,R_k}$.
+
+\paragraph{Substitution.} Every $x^k \in \conv(X_k)$ is a convex
+combination $x^k = \sum_{r} \lambda_{kr} x^{k,r}$ with
+$\sum_r \lambda_{kr} = 1$, $\lambda_{kr} \ge 0$. Writing
+$c_{kr} = \sum_{(i,j)} c_{ij} x^{k,r}_{ij}$ for the cost of route $r$
+and $a_{i}^{kr} = \sum_{j \neq i} x^{k,r}_{ji} \in \{0,1\}$ for whether
+it visits customer $i$, substitution into \eqref{eq:obj} and
+\eqref{eq:visit} gives the master
+\begin{align}
+  \minimize \quad & \sum_{k \in \mathcal{K}} \sum_{r=1}^{R_k}
+      c_{kr}\, \lambda_{kr}\\
+  \text{s.t.}\quad
+  & \sum_{k \in \mathcal{K}} \sum_{r=1}^{R_k}
+      a_i^{kr}\, \lambda_{kr} = 1, && i \in C,\\
+  & \sum_{r=1}^{R_k} \lambda_{kr} = 1, && k \in \mathcal{K},\\
+  & \lambda_{kr} \ge 0 .
+\end{align}
+
+\paragraph{Equivalence under integrality.} Impose
+$\lambda_{kr} \in \{0,1\}$. The convexity row then selects exactly one
+index $r$ per vehicle, so the recovered $x^k = x^{k,r}$ lies in $X_k$,
+and the coupling row says the chosen routes partition $C$. Conversely
+any feasible point of \eqref{eq:obj}--\eqref{eq:bin} has each $x^k \in
+X_k$, hence equals some extreme point, giving a $0$--$1$ $\lambda$ of
+the same cost. The two integer programs therefore have the same
+feasible solutions and the same objective values: they are equivalent.
+The difference is in their \emph{relaxations}, which is the subject of
+Section~5.
+
+\subsection{(c) Identical vehicles: a route-based set-partitioning model}
+
+All $K$ vehicles share the same capacity $Q$ and the same cost matrix,
+so $X_k = X$ for every $k$: the feasible route set and the route costs
+do not depend on $k$. Let $\mathcal{R}$ enumerate the feasible routes
+once, with cost $c_r$ and coverage $a_{ir} \in \{0,1\}$. Aggregating
+the vehicle-indexed weights,
+\[
+  \lambda_r \;=\; \sum_{k \in \mathcal{K}} \lambda_{kr},
+\]
+and summing the $K$ convexity rows gives
+$\sum_{r \in \mathcal{R}} \lambda_r = K$. The master collapses to
+\begin{align}
+  \minimize \quad & \sum_{r \in \mathcal{R}} c_r \lambda_r
+    \label{eq:spobj}\\
+  \text{s.t.}\quad
+  & \sum_{r \in \mathcal{R}} a_{ir} \lambda_r = 1, && i \in C,
+    \label{eq:spcov}\\
+  & \sum_{r \in \mathcal{R}} \lambda_r = K, \label{eq:spfleet}\\
+  & \lambda_r \in \{0,1\} \quad\text{(or } \lambda_r \ge 0
+    \text{ in the LP relaxation)}. \label{eq:spint}
+\end{align}
+Constraint \eqref{eq:spcov} is the customer-covering family: it is the
+aggregated coupling constraint \eqref{eq:visit}, and as an equality it
+enforces exactly-once service, making \eqref{eq:spobj}--\eqref{eq:spint}
+a set-\emph{partitioning} model. Constraint \eqref{eq:spfleet}
+represents the fixed fleet: it is the sum of the $K$ separate convexity
+rows, which is all that survives once the vehicles are interchangeable.
+Binary rather than general integer $\lambda_r$ loses nothing, since
+$\lambda_r \ge 2$ would serve every customer of $r$ at least twice and
+violate \eqref{eq:spcov}.
+
+The practical gain is the removal of the vehicle index. The original
+formulation is symmetric under all $K! = 24$ relabellings of identical
+vehicles, so a branch-and-bound search re-examines each solution up to
+$24$ times; the route-based model has no such symmetry.
+
+\subsection{(d) Column generation}
+
+$|\mathcal{R}|$ grows exponentially with $|C|$, so the LP relaxation of
+\eqref{eq:spobj}--\eqref{eq:spint} cannot be written down in general.
+Column generation solves it while handling only a small subset.
+
+\paragraph{Restricted master.} Choose
+$\mathcal{R}' \subseteq \mathcal{R}$ and solve
+\eqref{eq:spobj}--\eqref{eq:spfleet} over $\mathcal{R}'$ with
+$\lambda \ge 0$. Let $\pi_i$ be the dual of the covering row for
+customer $i$ and $\sigma$ the dual of the fleet row.
+
+\paragraph{Reduced cost and the pricing subproblem.} A column
+$r \in \mathcal{R}$ has reduced cost
+\[
+  \bar{c}_r \;=\; c_r \;-\; \sum_{i \in C} a_{ir}\pi_i \;-\; \sigma ,
+\]
+so the most attractive column solves
+\begin{equation}\label{eq:pricing}
+  \minimize_{r \in \mathcal{R}}\; \bar{c}_r
+  \;=\; -\sigma \;+\;
+  \minimize_{r \in \mathcal{R}}
+  \Bigl\{ \sum_{(i,j) \in r} c_{ij} - \sum_{i \in r} \pi_i \Bigr\} .
+\end{equation}
+Charging each dual at the head of the arc, $\tilde{c}_{ij} =
+c_{ij} - \pi_j$ with $\pi_o = 0$, makes \eqref{eq:pricing} a shortest
+closed walk from the depot to itself under modified costs, subject to
+visiting each customer at most once and to the load limit: an
+\emph{elementary shortest path problem with resource constraints}. It
+is the single-vehicle problem $X$ again, with a different objective.
+Explicitly, with $x_{ij}$ and $y_h = \sum_i x_{ih}$,
+\[
+  \minimize \;\; \sum_{(i,j) \in A} c_{ij} x_{ij}
+      - \sum_{h \in C} \pi_h y_h
+  \quad\text{s.t.}\quad
+  \sum_{j \in C} x_{oj} = 1,\;\;
+  \sum_{i \in C} x_{io} = 1,\;\;
+  y_h = \!\!\sum_{j \neq h}\!\! x_{hj} \le 1,\;\;
+  \sum_{h \in C} d_h y_h \le Q,
+\]
+together with \eqref{eq:sec} for the single vehicle and
+$x \in \{0,1\}^A$.
+
+\paragraph{Procedure.}
+\emph{Initialisation.} $\mathcal{R}'$ must make the restricted master
+feasible, which needs $K$ routes partitioning $C$. We obtain them from
+a first-fit-decreasing packing of the demands into $K$ bins followed by
+an exact traveling-salesman ordering within each bin, so the master is
+feasible at the first iteration and no artificial variables or Phase~I
+are required. \emph{Iteration.} Solve the restricted master, read
+$(\pi,\sigma)$, solve \eqref{eq:pricing}; if $\bar{c}_r < 0$ append the
+route and repeat. \emph{Termination.} Stop when the pricing optimum
+satisfies $\bar{c}_r \ge 0$. Because the pricing problem is solved
+\emph{exactly} over all of $\mathcal{R}$, this certifies that no column
+of the full master can improve the current basis, so the restricted
+master optimum is the optimum of the complete master LP --- obtained
+without ever enumerating $\mathcal{R}$.
+
+\section{Computational Implementation and Comparison}
+
+Both methods solve the same instance with $K = 4$ and $Q = 6000$.
+Timings are reported in Section~3.4 from a single sequential run, so
+that no two solvers compete for the machine.
+
+\subsection{Method I: direct MIP}
+
+\texttt{p3\_direct\_mip.py} builds \eqref{eq:obj}--\eqref{eq:bin} with
+$|A| \cdot K = 1{,}848$ binaries and $180$ explicit rows. The subtour
+family \eqref{eq:sec} is exponential and is therefore not written out:
+at every integer incumbent a callback takes the arcs each vehicle uses,
+finds the connected components that avoid the depot, and adds the
+violated inequality for each as a lazy constraint. Over the whole solve
+$240$ such cuts were generated. Vehicles are interchangeable, so a
+symmetry-breaking rule requiring the lowest-indexed customer of
+vehicle $k$ to increase with $k$ is also imposed.
+
+\paragraph{(a) Outcome.} The solver returns status \textsc{optimal}
+with objective $375$ and best bound $375.0000$, an optimality gap of
+$0.0000\%$, after $298{,}263$ branch-and-bound nodes. The instance file
+records the published optimum of E-n22-k4 as $375$, so the formulation
+and the data reading agree with an external reference.
+
+\paragraph{(b) The four routes.}
+
+\begin{center}
+\begin{tabular}{@{}rrrl@{}}
+\toprule
+vehicle & load & cost & visiting sequence\\
+\midrule
+1 & 5600 & 113 & $1 \to 7 \to 2 \to 3 \to 6 \to 8 \to 10 \to 1$\\
+2 & 5400 & 102 & $1 \to 14 \to 12 \to 5 \to 4 \to 9 \to 11 \to 1$\\
+3 & 5900 &  83 & $1 \to 18 \to 21 \to 19 \to 16 \to 13 \to 1$\\
+4 & 5600 &  77 & $1 \to 17 \to 20 \to 22 \to 15 \to 1$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Summing the four route costs reproduces $113 + 102 + 83 + 77 = 375$.
+The union of the four customer sets is $\{2,\dots,22\}$ with no
+repetition, so every customer is visited exactly once; the loads
+$5600, 5400, 5900, 5600$ all satisfy $\le Q = 6000$, the largest using
+$98.3\%$ of a vehicle. Both checks are recomputed from the returned
+arcs by the script rather than read off the solver.
+
+\subsection{Method II: column generation}
+
+\paragraph{(c) Construction of the initial RMP.}
+The restricted master must be feasible before any dual is meaningful,
+which needs $K$ routes partitioning $C$. We pack the demands into four
+bins by first-fit-decreasing and then order each bin by an exact
+Held--Karp traversal, giving the four routes
+$\{12,15,19,20,22\}$, $\{3,6,11,13,18\}$, $\{4,10,14,16,17\}$ and
+$\{2,5,7,8,9,21\}$ at a total cost of $616$. This is feasible by
+construction, so no artificial variables and no Phase~I are needed.
+
+The RMP is the LP \eqref{eq:spobj}--\eqref{eq:spfleet} over the current
+columns, solved by Gurobi. Its duals are $\pi_i$ on the covering row of
+customer $i$ and $\sigma$ on the fleet row; Gurobi returns them
+directly from the optimal basis. The pricing subproblem of
+Section~2.4 is then built as a single-vehicle MIP with the same lazy
+subtour separation as Method I, and any route it returns with
+$\bar{c}_r < 0$ is appended to the master. The column generation loop
+itself --- initial columns, dual extraction, pricing, column
+acceptance, termination --- is implemented in
+\texttt{p3\_colgen.py}; the solver is used only to solve the two
+optimisation problems inside it.
+
+\paragraph{(d) Results.}
+
+\begin{center}
+\begin{tabular}{@{}lr@{}}
+\toprule
+quantity & value\\
+\midrule
+column generation iterations & 44\\
+routes generated & 168 \;(164 beyond the 4 initial)\\
+final LP objective $z^{\mathrm{DW}}_{\mathrm{LP}}$ & 373.875000\\
+minimum reduced cost in the final pricing iteration & $0.000000$\\
+feasible routes in the full master & 68{,}292\\
+fraction of the column set ever priced in & $0.246\%$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\emph{Has optimality of the full master LP been established?} Yes. The
+pricing problem is solved exactly over all of $\mathcal{R}$, so a
+minimum reduced cost of $0$ means no route in the complete master can
+enter the basis profitably, and the restricted optimum is therefore
+optimal for the full master LP. Because this instance is small enough
+to settle independently, \texttt{verify\_cg.py} checks the claim
+without using the pricer: it enumerates all $68{,}292$ feasible routes
+and evaluates $\bar{c}_r$ at the final duals, finding a minimum of
+$0.0000000000$ and no route below $-10^{-9}$, and it re-solves the full
+master directly with a different solver (HiGHS), obtaining
+$373.875000$ and agreeing with column generation to
+$1.1 \times 10^{-13}$.
+
+\paragraph{(e) An integer solution from the generated routes.}
+The final LP is fractional: $12$ of the $168$ weights lie strictly
+between $0$ and $1$, the largest being $\lambda = 0.875$ on
+$\{13,16,18,19,21\}$. A fractional $\lambda$ is not a routing, so an
+integer solution must be constructed. We take option (ii), an integer
+restricted master: impose $\lambda_r \in \{0,1\}$ over the generated
+columns only and solve \eqref{eq:spobj}--\eqref{eq:spint} on that
+pool. It returns $375$ on the four routes
+$\{13,16,18,19,21\}$, $\{15,17,20,22\}$, $\{2,3,6,7,8,10\}$ and
+$\{4,5,9,11,12,14\}$, and the script re-checks from the route members
+that they partition $C$, that each load is within $Q$, and that each
+stated cost equals the cost of the optimal traversal of its member
+set. This matches the direct MIP optimum of Section~3.1.
+
+\paragraph{That outcome is not robust, and the reason matters.}
+Reaching $375$ depended on a choice that has nothing to do with the
+LP: how many solutions the pricer is asked for at each call. Taking
+only the best one, the natural implementation, leaves a pool from
+which no good integer solution can be built at all.
+
+\begin{center}\small
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{@{}rrrrrc@{}}
+\toprule
+solutions per & & & & integer & optimal routes\\
+pricing call & iterations & columns
+  & $z^{\mathrm{DW}}_{\mathrm{LP}}$ & master & in pool\\
+\midrule
+ 4 & 56 & 116 & 373.875000 & 616 & 3 of 4\\
+10 & 44 & 168 & 373.875000 & 375 & 4 of 4\\
+25 & 26 & 173 & 373.875000 & 391 & 3 of 4\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Two things stand out. The certified LP value is $373.875000$ in every
+row, as it must be: the bound is a property of the full master and
+cannot depend on how the columns were found. The integer value,
+however, is \emph{not monotone} in the pool size --- $25$ solutions
+per call is worse than $10$. A larger pool converges in fewer
+iterations and therefore collects a \emph{different} column set rather
+than a larger one, and the integer value tracks one thing only,
+whether the four optimal routes land in it. At $4$ solutions per call
+three of them do and $\{2,3,6,7,8,10\}$ does not, so those three
+cannot be completed into a partition of $C$ and the integer master
+falls back on the initial heuristic at $616$.
+
+The general point is not about tuning. Column generation terminates
+the moment the \emph{LP} is certified and has no reason to produce the
+columns an \emph{integer} solution needs; which ones it happens to
+leave behind is incidental. That is why solving the master LP is not
+the same as solving the CVRP, and why branch-and-price branches on the
+master rather than stopping here.
+
+\subsection{(f) Comparison}
+
+\begin{center}
+\begin{tabular}{@{}lr@{}}
+\toprule
+quantity & value\\
+\midrule
+Method I, direct MIP: optimal objective & 375\\
+Method I: best bound at termination & 375.0000\\
+Method I: optimality gap & $0.0000\%$\\
+Method II: certified LP bound
+  $z^{\mathrm{DW}}_{\mathrm{LP}}$ & 373.875000\\
+Method II: integer solution over generated routes & 375\\
+implied bracket on $z^\star$, costs being integral
+  & $[374,\,375]$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Solution quality.} Both methods reach the same routing, of
+cost $375$, but they know different things about it. Method I
+\emph{proves} optimality: its bound meets its incumbent. Method II
+produces the same solution without proving it. Its bound
+$373.875$ is a valid lower bound on $z^\star$, and because every
+$c_{ij}$ is an integer every feasible cost is an integer, so
+$z^\star \ge \lceil 373.875 \rceil = 374$; with the feasible solution
+of cost $375$ in hand this brackets the optimum to $[374,375]$. Column
+generation therefore comes within one unit of a proof without
+branching once, which is the practical content of the stronger
+relaxation measured in Section~4 --- but closing that last unit still
+requires branching on top of the master, which is the step this
+project stops short of.
+
+\paragraph{Computational performance.} The raw times favour neither
+method decisively at this size, and that is itself the point: a
+$21$-customer instance is small enough for a direct MIP to be viable,
+which is exactly the regime where decomposition has least to offer.
+What the numbers show is \emph{why} that changes. Method I explores
+$298{,}263$ nodes on $1{,}848$ binaries, and it needs an explicit
+symmetry-breaking rule because the $K! = 24$ relabellings of identical
+vehicles would otherwise be re-explored; both the node count and the
+binary count grow sharply with $n$ and $K$. Method II prices in only
+$116$--$173$ of the $68{,}292$ feasible routes, between $0.17\%$ and
+$0.25\%$ of the column set, and carries no vehicle symmetry at all
+because the route-based model has no vehicle index. Its cost per
+iteration is dominated by the pricing problem, which is an
+NP-hard elementary shortest path problem but one solved on a single
+vehicle rather than on the full fleet. The scaling argument favours
+decomposition well before the formulations themselves become
+unmanageable: Method I would exceed this licence's $2{,}000$-variable
+limit at $n = 23$ with $K = 4$.
+
+\subsection{Timings}
+
+All figures below come from one sequential execution of
+\texttt{run\_all.py}, which regenerates every number quoted in this
+report in $379.3$~s of wall clock. Nothing was run concurrently, so no
+two solvers competed for the machine.
+
+\begin{center}
+\begin{tabular}{@{}lr@{}}
+\toprule
+stage & time (s)\\
+\midrule
+Method I: direct MIP solved to proven optimality & 112.14\\
+Method II: column generation to a certified LP bound & 32.77\\
+Method II: integer restricted master over the generated pool & 0.01\\
+\midrule
+Method II total & 32.78\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Method II reaches the same routing in roughly a third of the time, but
+the comparison is not like for like: Method I returns a \emph{proof},
+Method II the same solution with a bound one unit short of proving it.
+Method I's $112$ seconds go almost entirely on that proof, a solution
+of cost $375$ being found long before the bound closes.
+
+Two auxiliary computations reported elsewhere belong to neither
+method: enumerating all $68{,}292$ routes takes $0.6$~s and solving
+the resulting complete master LP with HiGHS $0.45$~s. Both exist only
+to check the column generation, and neither would be available at a
+size where decomposition was actually needed.
+
+\section{LP Relaxation and Reformulation Strength}
+
+\paragraph{(a) The two bounds.}
+\texttt{p4\_relaxations.py} solves the LP relaxation of
+\eqref{eq:obj}--\eqref{eq:bin}. Because the subtour family
+\eqref{eq:sec} is exponential it is separated rather than listed: at
+each round, for every vehicle $k$ and customer $l$, the minimum cut
+separating $l$ from the depot under capacities $x_{ijk}$ is computed,
+and whenever that cut falls below $y_{lk}$ the violated inequality
+$\sum_{i \in S}\sum_{j \notin S} x_{ijk} \ge y_{lk}$ is added and the
+LP re-solved. The loop stopped after $9$ rounds having added $206$
+cuts.
+
+\begin{center}
+\begin{tabular}{@{}lrl@{}}
+\toprule
+bound & value & obtained from\\
+\midrule
+LP of \eqref{eq:obj}--\eqref{eq:bin}, \eqref{eq:sec} omitted
+  & 262.000000 & degree, capacity and depart rows only\\
+$z^{\mathrm{orig}}_{\mathrm{LP}}$, \eqref{eq:sec} separated
+  & 318.000000 & 9 rounds, 206 minimum-cut inequalities\\
+$z^{\mathrm{DW}}_{\mathrm{LP}}$
+  & 373.875000 & column generation, Section~3\\
+$z^\star$ & 375 & direct MIP and set partitioning\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The subtour constraints are worth $56$ units of bound on their own.
+Even with them, $z^{\mathrm{orig}}_{\mathrm{LP}} = 318$ leaves a gap of
+$57$ to the optimum, of which the route-based reformulation closes
+$373.875 - 318 = 55.875$, that is $98.0\%$.
+
+\paragraph{(b) Why the DW bound dominates.}
+Both relaxations optimise the same objective subject to the same
+coupling constraint \eqref{eq:visit}; they differ only in what they
+allow a single vehicle to do. The ordinary LP relaxation replaces each
+subproblem set $X_k$ by its \emph{LP relaxation}
+\[
+  P_k \;=\; \bigl\{\, x^k \in [0,1]^{A} :
+    \eqref{eq:flow},\,\eqref{eq:depart},\,\eqref{eq:cap},\,\eqref{eq:sec}
+    \,\bigr\} \;\supseteq\; \conv(X_k),
+\]
+whereas the master LP, by construction, restricts $x^k$ to
+$\conv(X_k)$: its variables are convex weights on the
+\emph{integer} points of $X_k$, so no point outside the convex hull is
+ever representable. Since $\conv(X_k) \subseteq P_k$, the master LP
+optimises over a subset of the ordinary relaxation's feasible region
+and therefore
+\[
+  z^{\mathrm{orig}}_{\mathrm{LP}}
+  \;\le\; z^{\mathrm{DW}}_{\mathrm{LP}}
+  \;\le\; z^\star ,
+\]
+which the measured chain $262 \le 318 \le 373.875 \le 375$ confirms.
+
+The gap between $\conv(X_k)$ and $P_k$ is exactly what is bought. A
+point of $P_k$ may split flow fractionally across many partial tours
+that no single vehicle could execute, and the capacity row only
+constrains its \emph{average} load; a point of $\conv(X_k)$ is a convex
+combination of genuine routes, each of which respects capacity and
+elementarity on its own. Equivalently,
+$z^{\mathrm{DW}}_{\mathrm{LP}}$ is the Lagrangian bound obtained by
+dualising \eqref{eq:visit} and solving the resulting subproblem to
+integer optimality, which is the strongest bound any such dualisation
+can give. The two coincide only when $P_k$ is already integral, which
+the capacity and subtour rows ensure it is not.
+
+\section{Sensitivity Analysis}
+
+\paragraph{(a) Raising the capacity.}
+With $Q' = 7500$, all other data unchanged and still exactly four
+vehicles, the direct MIP of Section~2.1 solves to proven optimality at
+$z^\star(7500) = 368$, in $142.01$~s with a final gap of $0.0000\%$.
+
+\begin{center}
+\begin{tabular}{@{}rrrl@{}}
+\toprule
+vehicle & load & cost & route\\
+\midrule
+1 & 7500 & 116 & $1 \to 11 \to 7 \to 2 \to 3 \to 6 \to 8 \to 10 \to 13 \to 1$\\
+2 & 4800 & 100 & $1 \to 14 \to 12 \to 5 \to 4 \to 9 \to 1$\\
+3 & 3400 &  46 & $1 \to 15 \to 18 \to 17 \to 1$\\
+4 & 6800 & 106 & $1 \to 16 \to 19 \to 21 \to 22 \to 20 \to 1$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{(b) What changed.}
+The travel cost falls from $375$ to $368$, a reduction of $7$ units or
+$1.87\%$. The change is not cosmetic: \emph{every} route differs, and
+no customer set survives the change of capacity.
+
+\begin{center}\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}l p{8.6cm} r@{}}
+\toprule
+& customer partition & loads\\
+\midrule
+$Q = 6000$ &
+  $\{2,3,6,7,8,10\}$, $\{4,5,9,11,12,14\}$, $\{13,16,18,19,21\}$,
+  $\{15,17,20,22\}$
+  & $5400,\,5600,$\\
+& & $5600,\,5900$\\
+\addlinespace
+$Q' = 7500$ &
+  $\{2,3,6,7,8,10,11,13\}$, $\{4,5,9,12,14\}$, $\{15,17,18\}$,
+  $\{16,19,20,21,22\}$
+  & $3400,\,4800,$\\
+& & $6800,\,7500$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The load profile explains why. At $Q = 6000$ the loads are tightly
+balanced, with only $100$ units of headroom on the fullest route,
+because the capacity forces an even split. At $Q' = 7500$ the solver
+abandons balance, loads one vehicle to the new limit \emph{exactly},
+and spends the freedom on a short cheap route
+$1 \to 15 \to 18 \to 17 \to 1$ costing only $46$. The meaningful
+observation is that the binding resource has moved. At $Q = 6000$
+capacity dictates the partition and the routes are a consequence; at
+$Q' = 7500$ capacity is still binding on one vehicle but no longer
+shapes the other three, so geometry takes over.
+
+\paragraph{(c) Why $z^\star(7500) \le z^\star(6000)$.}
+Let $F(Q)$ be the feasible set of
+\eqref{eq:obj}--\eqref{eq:bin} at capacity $Q$. Capacity enters only
+through \eqref{eq:cap}, and for $Q' \ge Q$ any point satisfying
+$\sum_i d_i y_{ik} \le Q$ also satisfies
+$\sum_i d_i y_{ik} \le Q'$; every other constraint is untouched. Hence
+$F(Q) \subseteq F(Q')$, and minimising the same objective over a larger
+set cannot increase its minimum:
+\[
+  z^\star(Q') \;=\; \minimize_{x \in F(Q')} c\T x
+  \;\le\; \minimize_{x \in F(Q)} c\T x \;=\; z^\star(Q),
+  \qquad Q' \ge Q .
+\]
+So $z^\star$ is a nonincreasing function of $Q$, and in particular
+$z^\star(7500) \le z^\star(6000)$. Here it happens to be strict,
+$368 < 375$.
+
+\emph{The inequality is not always strict.} $z^\star(Q)$ is
+nonincreasing and piecewise constant: it can only change when the
+relaxation admits a genuinely new partition, and there are finitely
+many partitions of $C$ into $K$ sets. Write $z_\infty$ for the optimal
+cost with the capacity rows deleted entirely, attained by some
+partition whose largest load is $Q_\infty$. For every $Q \ge Q_\infty$
+that partition is feasible, so $z^\star(Q) = z_\infty$ and the function
+is flat from $Q_\infty$ onwards; any two capacities in that range give
+equality. Strictness therefore requires the capacity constraint to be
+\emph{active at the optimum of the smaller problem and relaxable into a
+better partition}, which is what happens between $6000$ and $7500$ and
+what must eventually stop happening as $Q$ grows.
+
+\end{document}

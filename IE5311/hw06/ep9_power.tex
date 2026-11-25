@@ -1,0 +1,135 @@
+%=======================================================================
+%  IE 5311-001 (D01) Exploration Problem EP9
+%  One page, single spacing, 10 pt, 1-inch margins, as the sheet requires.
+%  Content past page 1 is not graded, so the page limit is hard.
+%  Sections map onto the parts asked: what the cones are, the dual cone
+%  and its characterisation, problems that use them, and conic duality.
+%
+%  IF IT SPILLS ONTO A SECOND PAGE, delete in this order until it fits.
+%    1. the last sentence of section 5
+%    2. the p = 7.3 row of the table in section 4
+%    3. the sentence in section 3 beginning "Market impact"
+%  Do not cut the AM-GM argument in section 2 or the table in section 4:
+%  they are the dual cone and the duality the question asks about.
+%=======================================================================
+\documentclass[10pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+
+\newcommand{\T}{^{\!\top}}
+\newcommand{\Rp}{\mathbb{R}_+}
+
+\pagestyle{empty}
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+{\large\bfseries EP9.\quad Power cones and their duals}\\[1pt]
+{\small Lidivine Kengne \quad\textbar\quad IE 5311-001 (D01), Homework 6}
+\vspace{0.3em}
+
+\textbf{1. What they are.}
+For $\alpha \in (0,1)$ the three-dimensional power cone is
+\[
+  \mathcal{P}_\alpha
+  = \bigl\{ (x,y,z) \in \Rp \times \Rp \times \mathbb{R}
+      \;:\; x^{\alpha} y^{1-\alpha} \ge |z| \bigr\}.
+\]
+It is a closed convex cone: the weighted geometric mean
+$x^\alpha y^{1-\alpha}$ is concave on $\Rp^2$ and positively
+homogeneous of degree one, so its hypograph is a cone and convex. The
+general form replaces the two factors by $m$ of them and $z$ by a
+vector, $\prod_j x_j^{\alpha_j} \ge \|z\|_2$ with
+$\sum_j \alpha_j = 1$. Taking $\alpha = \tfrac12$ gives
+$\sqrt{xy} \ge |z|$, which is exactly the rotated second-order cone ---
+so power cones \emph{contain} the second-order cone as the single point
+$\alpha = 1/2$ of a continuum.
+
+\textbf{2. The dual cone.}
+The dual is the same cone with its two nonnegative coordinates
+rescaled:
+\[
+  \mathcal{P}_\alpha^{*}
+  = \Bigl\{ (u,v,w) \in \Rp \times \Rp \times \mathbb{R}
+      \;:\; \Bigl(\tfrac{u}{\alpha}\Bigr)^{\!\alpha}
+            \Bigl(\tfrac{v}{1-\alpha}\Bigr)^{\!1-\alpha} \ge |w| \Bigr\}.
+\]
+Containment follows from weighted AM--GM. For nonnegative $x,y,u,v$,
+\[
+  \Bigl(\tfrac{u}{\alpha}\Bigr)^{\!\alpha}
+  \Bigl(\tfrac{v}{1-\alpha}\Bigr)^{\!1-\alpha} x^{\alpha} y^{1-\alpha}
+  = \Bigl(\tfrac{ux}{\alpha}\Bigr)^{\!\alpha}
+    \Bigl(\tfrac{vy}{1-\alpha}\Bigr)^{\!1-\alpha}
+  \;\le\; \alpha \cdot \tfrac{ux}{\alpha}
+        + (1-\alpha)\cdot \tfrac{vy}{1-\alpha}
+  = ux + vy ,
+\]
+so if $x^\alpha y^{1-\alpha} \ge |z|$ and the dual inequality holds,
+then $ux + vy \ge |w||z| \ge -wz$, that is
+$\langle (x,y,z),(u,v,w)\rangle \ge 0$. Sampling
+(\texttt{ep9\_power.py}) checks both directions at
+$\alpha = 0.2, 0.5, 0.75$: no pair drawn from
+$\mathcal{P}_\alpha \times \mathcal{P}^*_\alpha$ had negative pairing,
+and all $300$ sampled points outside the claimed dual admitted a cone
+element they paired negatively with, so the characterisation is exact
+and not merely sufficient. As a consistency check, an
+$\alpha = \tfrac12$ program and the equivalent rotated second-order
+cone program agree to $4.9 \times 10^{-8}$.
+
+\textbf{3. Where they arise naturally.}
+The headline case is the $p$-norm. For $p > 1$,
+\[
+  \|z\|_p \le t
+  \quad\Longleftrightarrow\quad
+  \exists\, s \ge 0: \;\; \sum_i s_i = t, \;\;
+  |z_i| \le s_i^{1/p}\, t^{1-1/p} \;\; \text{for each } i,
+\]
+one power cone with $\alpha = 1/p$ per component. Geometric-mean
+objectives $\prod_i x_i^{1/n} \ge t$ are the general form directly.
+Market impact models in portfolio construction, where trading cost
+grows like $|x|^{3/2}$, are a power cone with $\alpha = 2/3$.
+
+\textbf{4. Conic duality on such a problem.}
+Take $p$-norm regression, $\min_x \|Ax - b\|_p$, built from the cones
+above. Its conic dual is
+$\max_y\, b\T y$ subject to $A\T y = 0$ and $\|y\|_q \le 1$, where
+$1/p + 1/q = 1$: the classical H\"older duality, recovered by the
+conic machinery, with the rescaling by $1/\alpha$ and $1/(1-\alpha)$ in
+$\mathcal{P}^*_\alpha$ being precisely what carries $p$ to its
+conjugate exponent $q$. On a random instance with $60$ residuals and
+$8$ unknowns:
+
+\begin{center}\footnotesize
+\setlength{\tabcolsep}{7pt}
+\begin{tabular}{@{}rrrrrr@{}}
+\toprule
+$p$ & $q$ & power cone & SLSQP & H\"older dual & max gap\\
+\midrule
+1.50000 & 3.00000 & 3.57209424 & 3.57209420 & 3.57209420 & $3.7\times10^{-8}$\\
+2.00000 & 2.00000 & 1.98539745 & 1.98539741 & 1.98539740 & $5.0\times10^{-8}$\\
+3.00000 & 1.50000 & 1.13058808 & 1.13058807 & 1.13058802 & $6.2\times10^{-8}$\\
+3.14159 & 1.46694 & 1.07640987 & 1.07640985 & 1.07640974 & $1.3\times10^{-7}$\\
+7.30000 & 1.15873 & 0.62011110 & 0.62011109 & 0.62011107 & $3.1\times10^{-8}$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Primal, dual and a general-purpose nonlinear solver agree throughout,
+so the duality is not merely formal.
+
+\textbf{5. Why not just use second-order cones.}
+Because $\|\cdot\|_p$ is second-order cone representable only for
+\emph{rational} $p$, and then by a tower whose size grows with the
+continued-fraction expansion of $p$. Asked to build the $q$-norm of row
+four by second-order cones, CVXPY reports that it approximates
+$q = 1.46694$ with $11$ second-order cone constraints at an error of
+$5.8 \times 10^{-8}$; row five costs $8$ constraints. One power cone
+per residual is exact, fixed in size, and works for $p = \pi$ --- where
+no tower exists at all.
+
+\end{document}

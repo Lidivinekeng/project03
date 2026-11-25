@@ -1,0 +1,224 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+\DeclareMathOperator{\rank}{rank}
+
+\theoremstyle{definition}
+\newtheorem{problem}{Problem}
+\newtheorem*{remark}{Remark}
+\newtheorem*{corollary}{Corollary}
+
+\title{IE 5311-001 (D01) Principles of Optimization\\[2pt]
+       \large Class 01, Slide 7 Self-Check Problems}
+\author{Lidivine Kengne}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+%======================================================================
+\section{Coordinates Under Two Bases}
+%======================================================================
+
+\begin{problem}
+Consider the vector space of degree-2 polynomials with real coefficients,
+and the two bases
+\[
+  \mathcal{B}_1 = \{1,\; x,\; x^2\},
+  \qquad
+  \mathcal{B}_2 = \{1+x,\; x+x^2,\; 1+x^2\}.
+\]
+For the polynomial $p(x) = 3 + 5x + 4x^2$, find its coefficients under
+$\mathcal{B}_1$ and under $\mathcal{B}_2$, respectively.
+\end{problem}
+
+\subsection*{Setup}
+
+Write $\mathcal{P}_2$ for the space of real polynomials of degree at most
+two. Addition and scalar multiplication act coefficient by coefficient,
+so $\dim \mathcal{P}_2 = 3$.
+
+A vector and its coordinate list are different objects. The polynomial
+$p$ is fixed. The list of numbers describing $p$ changes with the basis.
+For a basis $\mathcal{B} = \{v_1, v_2, v_3\}$ we write
+$[p]_{\mathcal{B}} = (a_1, a_2, a_3)^{\top}$ to mean
+$p = a_1 v_1 + a_2 v_2 + a_3 v_3$.
+
+\subsection*{Coordinates under $\mathcal{B}_1$}
+
+The basis $\mathcal{B}_1 = \{1, x, x^2\}$ is the standard one, so the
+coefficients are read directly from $p$:
+\[
+  p(x) = 3 \cdot 1 \;+\; 5 \cdot x \;+\; 4 \cdot x^2,
+  \qquad\text{hence}\qquad
+  [p]_{\mathcal{B}_1} = \begin{pmatrix} 3 \\ 5 \\ 4 \end{pmatrix}.
+\]
+
+\subsection*{Coordinates under $\mathcal{B}_2$}
+
+Seek scalars $a, b, c \in \mathbb{R}$ such that
+\[
+  a(1+x) \;+\; b(x+x^2) \;+\; c(1+x^2) \;=\; 3 + 5x + 4x^2 .
+\]
+Expand the left-hand side and collect powers of $x$:
+\[
+  a(1+x) + b(x+x^2) + c(1+x^2)
+  \;=\; \underbrace{(a+c)}_{\text{constant}}
+  \;+\; \underbrace{(a+b)}_{x}\, x
+  \;+\; \underbrace{(b+c)}_{x^2}\, x^2 .
+\]
+Two polynomials are equal if and only if their coefficients agree power
+by power, which gives the linear system
+\[
+  \begin{cases}
+    a + c = 3, \\
+    a + b = 5, \\
+    b + c = 4.
+  \end{cases}
+\]
+From the first equation, $c = 3 - a$. Substituting into the third gives
+$b = 4 - c = 1 + a$. Substituting that into the second gives
+$a + (1+a) = 5$, hence $a = 2$, and back-substitution yields $b = 3$ and
+$c = 1$. Therefore
+\[
+  [p]_{\mathcal{B}_2} = \begin{pmatrix} 2 \\ 3 \\ 1 \end{pmatrix}.
+\]
+
+\subsection*{Verification}
+
+\[
+  2(1+x) + 3(x+x^2) + 1(1+x^2)
+  = (2+1) + (2+3)x + (3+1)x^2
+  = 3 + 5x + 4x^2 = p(x). \checkmark
+\]
+
+\subsection*{Change-of-basis matrix}
+
+Collect the $\mathcal{B}_2$ vectors, written in $\mathcal{B}_1$
+coordinates, as the columns of a matrix:
+\[
+  M =
+  \begin{pmatrix}
+    1 & 0 & 1 \\
+    1 & 1 & 0 \\
+    0 & 1 & 1
+  \end{pmatrix},
+  \qquad
+  \text{columns } \;1+x,\;\; x+x^2,\;\; 1+x^2 ,
+\]
+whose rows correspond to the coefficients of $1$, $x$ and $x^2$. Then
+\[
+  M \, [p]_{\mathcal{B}_2} = [p]_{\mathcal{B}_1},
+  \qquad\text{equivalently}\qquad
+  [p]_{\mathcal{B}_2} = M^{-1} [p]_{\mathcal{B}_1}.
+\]
+Cofactor expansion along the first row gives
+\[
+  \det M = 1\,(1\cdot 1 - 0\cdot 1) - 0\,(1\cdot 1 - 0\cdot 0)
+         + 1\,(1\cdot 1 - 1\cdot 0) = 2 \neq 0 ,
+\]
+which confirms that $\mathcal{B}_2$ is a basis rather than an arbitrary
+set of three polynomials. A direct check confirms the answer:
+\[
+  M \begin{pmatrix} 2 \\ 3 \\ 1 \end{pmatrix}
+  = \begin{pmatrix} 2 + 0 + 1 \\ 2 + 3 + 0 \\ 0 + 3 + 1 \end{pmatrix}
+  = \begin{pmatrix} 3 \\ 5 \\ 4 \end{pmatrix}
+  = [p]_{\mathcal{B}_1}. \checkmark
+\]
+
+\begin{remark}
+In linear programming a basic feasible solution is a choice of basis, and
+the simplex method is a rule for moving from one basis to the next. The
+determinant check performed here is the same nonsingularity condition
+imposed on a simplex basis matrix.
+\end{remark}
+
+%======================================================================
+\section{Kernel of a Transpose Product}
+%======================================================================
+
+\begin{problem}
+Given any matrix $A$, prove that $\ker(A^{\top}\!A) = \ker(A)$.
+\end{problem}
+
+\subsection*{Setup}
+
+Let $A \in \mathbb{R}^{m \times n}$. Recall
+\[
+  \ker(A) = \{\, x \in \mathbb{R}^{n} : Ax = 0 \,\}.
+\]
+Since $A^{\top}\!A \in \mathbb{R}^{n \times n}$, both kernels are
+subspaces of $\mathbb{R}^{n}$, so the comparison is well posed. Proving
+equality of two sets requires two inclusions.
+
+\begin{proof}
+\textbf{Step 1: $\ker(A) \subseteq \ker(A^{\top}\!A)$.}
+
+Let $x \in \ker(A)$, so $Ax = 0$. Multiplying on the left by $A^{\top}$
+and using associativity,
+\[
+  (A^{\top}\!A)\,x = A^{\top}(Ax) = A^{\top} 0 = 0 ,
+\]
+hence $x \in \ker(A^{\top}\!A)$.
+
+\medskip
+\textbf{Step 2: $\ker(A^{\top}\!A) \subseteq \ker(A)$.}
+
+Let $x \in \ker(A^{\top}\!A)$, so $A^{\top}\!A x = 0$. Multiply on the
+left by $x^{\top}$:
+\[
+  0 = x^{\top}\!\left(A^{\top}\!A x\right)
+    = \left(x^{\top} A^{\top}\right)(A x)
+    = (Ax)^{\top}(Ax)
+    = \left\| Ax \right\|_{2}^{2} .
+\]
+Writing $y = Ax \in \mathbb{R}^{m}$, this says
+$y_1^2 + y_2^2 + \cdots + y_m^2 = 0$. A sum of squares of real numbers
+vanishes if and only if every term vanishes, so $y_i = 0$ for all $i$,
+that is $Ax = 0$ and $x \in \ker(A)$.
+
+\medskip
+Both inclusions hold, therefore $\ker(A^{\top}\!A) = \ker(A)$.
+\end{proof}
+
+\begin{remark}[The real field is essential]
+Step 2 uses the fact that a sum of squares of \emph{real} numbers
+vanishes only when each term vanishes. Over $\mathbb{C}$ with the plain
+transpose the statement is false. Take
+\[
+  A = \begin{pmatrix} 1 \\ i \end{pmatrix} \in \mathbb{C}^{2 \times 1},
+  \qquad
+  A^{\top}\!A = 1 \cdot 1 + i \cdot i = 1 + (-1) = 0 .
+\]
+Then $\ker(A^{\top}\!A) = \mathbb{C}$, while $A \neq 0$ gives
+$\ker(A) = \{0\}$. Replacing the transpose by the conjugate transpose
+restores the result, since
+$A^{*}A = 1 \cdot 1 + (-i)\cdot i = 2$ is invertible. State the field
+explicitly when writing the proof.
+\end{remark}
+
+\begin{corollary}
+By the rank-nullity theorem applied to $A$ and to $A^{\top}\!A$, both of
+which act on $\mathbb{R}^{n}$,
+\[
+  \rank(A^{\top}\!A) = n - \dim \ker(A^{\top}\!A)
+                     = n - \dim \ker(A)
+                     = \rank(A).
+\]
+Consequently $A^{\top}\!A$ is invertible if and only if $A$ has full
+column rank, and the normal equations $A^{\top}\!A x = A^{\top} b$ then
+have a unique solution.
+\end{corollary}
+
+\begin{remark}
+This corollary underwrites least squares estimation and reappears in
+interior point methods, where each iteration solves a system built from
+$A^{\top} D A$ with $D$ a positive diagonal weight matrix.
+\end{remark}
+
+\end{document}

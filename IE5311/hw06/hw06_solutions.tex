@@ -1,0 +1,987 @@
+%=======================================================================
+%  IE 5311-001 (D01) Principles of Optimization
+%  Homework 06 solutions
+%
+%  Packages: geometry, amsmath, amssymb, amsthm, booktabs, array.
+%  No figure and no external file: this .tex compiles on its own.
+%=======================================================================
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{booktabs}
+\usepackage{array}
+
+\DeclareMathOperator*{\minimize}{min}
+\DeclareMathOperator*{\maximize}{max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator{\conv}{conv}
+\DeclareMathOperator{\interior}{int}
+\DeclareMathOperator{\tr}{tr}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\T}{^{\!\top}}
+
+\theoremstyle{definition}
+\newtheorem{remark}{Remark}
+
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+
+\title{IE 5311-001 (D01) Principles of Optimization\\
+       Homework 6}
+\author{Lidivine Kengne}
+\date{Fall 2026}
+
+\begin{document}
+\maketitle
+
+\section*{Problem 0.\quad[1 extra-credit point]}
+
+I have completed the course evaluation before submitting this homework.
+
+\section*{Problem 1.\quad Maximum entropy from moment data \quad[25 pts]}
+
+\subsection*{1.\quad The formulation}
+
+\paragraph{Sets.} $I = \{1,\dots,n\}$, the faces of the die, indexed by
+$i$.
+
+\paragraph{Parameters.}
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Symbol & Meaning\\
+\midrule
+$n$ & number of faces, a positive integer\\
+$m_1$ & estimate of $\sum_{i \in I} i\,p_i$, in face-index units\\
+$m_2$ & estimate of $\sum_{i \in I} i^2 p_i$, in squared face-index units\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Decision variables.} $p_i \ge 0$ for $i \in I$, the
+probability of face $i$; dimensionless.
+
+\paragraph{Program.} Maximising entropy is minimising its negative, so
+\begin{equation}\label{eq:p1primal}
+\begin{aligned}
+  \minimize_{p}\quad & -H(p) \;=\; \sum_{i \in I} p_i \ln p_i\\
+  \text{s.t.}\quad   & \sum_{i \in I} p_i = 1,\\
+                     & \sum_{i \in I} i\, p_i = m_1,\\
+                     & \sum_{i \in I} i^2 p_i = m_2,\\
+                     & p_i \ge 0, \quad i \in I,
+\end{aligned}
+\end{equation}
+with the usual convention $0\ln 0 = 0$. Each term $t \mapsto t \ln t$
+is strictly convex on $t > 0$, so the objective is convex and the three
+constraints are affine: \eqref{eq:p1primal} is a convex program.
+
+\paragraph{Classification (slides 8--10).} Constrained; continuous
+variables, compact ($n$ of them); objective convex nonlinear and
+separable, constraints linear; parameters deterministic once $m_1, m_2$
+are estimated; single stage; single player.
+
+\begin{remark}
+The moment data enter only through $m_1$ and $m_2$. Replacing the die
+faces $i$ by arbitrary values $v_i$ changes nothing below except that
+$i$ and $i^2$ become $v_i$ and $v_i^2$.
+\end{remark}
+
+\subsection*{2.\quad The Lagrangian}
+
+Attach free multipliers $\nu_0, \nu_1, \nu_2$ to the three equalities.
+The nonnegativity is kept in the domain rather than dualised, for the
+reason given in Part~5: the logarithm already forces $p > 0$. Then
+\begin{equation}\label{eq:p1lag}
+  L(p,\nu) \;=\; \sum_{i \in I} p_i \ln p_i
+    \;+\; \nu_0\Bigl(\sum_{i \in I} p_i - 1\Bigr)
+    \;+\; \nu_1\Bigl(\sum_{i \in I} i\,p_i - m_1\Bigr)
+    \;+\; \nu_2\Bigl(\sum_{i \in I} i^2 p_i - m_2\Bigr).
+\end{equation}
+
+\subsection*{3.\quad The dual, and its simplification}
+
+$L$ is separable in $p$ and strictly convex, so the infimum is found
+termwise. Setting $\partial L / \partial p_i = 0$,
+\[
+  \ln p_i + 1 + \nu_0 + \nu_1 i + \nu_2 i^2 = 0
+  \qquad\Longrightarrow\qquad
+  p_i(\nu) = \exp\!\bigl(-1 - \nu_0 - \nu_1 i - \nu_2 i^2\bigr),
+\]
+which is automatically strictly positive, so the dropped constraint
+$p \ge 0$ is satisfied without being imposed. Substituting back, the
+first three terms collapse because
+$\sum_i p_i \ln p_i = \sum_i p_i(-1-\nu_0-\nu_1 i - \nu_2 i^2)$, leaving
+\begin{equation}\label{eq:p1dual}
+  g(\nu) \;=\; -\sum_{i \in I}
+      \exp\!\bigl(-1-\nu_0-\nu_1 i-\nu_2 i^2\bigr)
+      \;-\; \nu_0 - \nu_1 m_1 - \nu_2 m_2 ,
+  \qquad
+  \maximize_{\nu \in \R^3} \; g(\nu),
+\end{equation}
+an unconstrained concave maximisation.
+
+\paragraph{Eliminating $\nu_0$.} Write
+$Z(\nu_1,\nu_2) = \sum_{i \in I} e^{-\nu_1 i - \nu_2 i^2}$, the
+partition function. Then
+$g = -e^{-1-\nu_0}Z - \nu_0 - \nu_1 m_1 - \nu_2 m_2$, and
+$\partial g/\partial \nu_0 = e^{-1-\nu_0}Z - 1 = 0$ gives
+$\nu_0 = \ln Z - 1$. Substituting,
+\begin{equation}\label{eq:p1dualred}
+  \maximize_{\nu_1,\nu_2 \in \R}\quad
+  -\ln Z(\nu_1,\nu_2) - \nu_1 m_1 - \nu_2 m_2
+  \qquad\Longleftrightarrow\qquad
+  \minimize_{\nu_1,\nu_2 \in \R}\quad
+  \ln Z(\nu_1,\nu_2) + \nu_1 m_1 + \nu_2 m_2 .
+\end{equation}
+
+This is the payoff of dualising. The primal has $n$ variables and three
+equalities; the reduced dual is smooth, unconstrained and has
+\emph{two} variables whatever $n$ is --- one per moment constraint. The
+primal solution is recovered from the dual optimum as the Gibbs
+distribution
+\begin{equation}\label{eq:p1gibbs}
+  p_i^\star \;=\;
+  \frac{\exp\!\bigl(-\nu_1^\star i - \nu_2^\star i^2\bigr)}
+       {Z(\nu_1^\star,\nu_2^\star)}, \qquad i \in I .
+\end{equation}
+Maximum entropy subject to moment constraints therefore always produces
+an exponential family in the constraint functions; the multipliers are
+its natural parameters.
+
+\subsection*{4.\quad Slater's criterion}
+
+The objective is convex and all three constraints are affine, so Slater
+reduces to the existence of a point in the \emph{relative interior} of
+the domain that satisfies them: some $p$ with $p_i > 0$ for every
+$i \in I$ and
+$\sum_i p_i = 1$, $\sum_i i p_i = m_1$, $\sum_i i^2 p_i = m_2$.
+
+As $p$ ranges over the simplex, the pair
+$\bigl(\sum_i i p_i, \sum_i i^2 p_i\bigr)$ ranges over
+$\conv\{(i,i^2) : i \in I\}$, and $p$ may be taken strictly positive
+exactly when the pair lies in the interior of that hull. Hence
+\begin{equation}\label{eq:p1slater}
+  \text{Slater holds}
+  \quad\Longleftrightarrow\quad
+  (m_1,m_2) \in \interior \conv\bigl\{(i,i^2) : i \in I\bigr\}.
+\end{equation}
+
+The hull is explicit. Its upper boundary is the single chord from
+$(1,1)$ to $(n,n^2)$, of slope $n+1$; its lower boundary is the
+piecewise-linear interpolation through consecutive points, the piece
+over $m_1 \in [j,j+1]$ having slope $2j+1$. So, with
+$j = \lfloor m_1 \rfloor$, Slater holds if and only if
+\begin{equation}\label{eq:p1slater2}
+  1 < m_1 < n
+  \qquad\text{and}\qquad
+  (2j+1)\,m_1 - j(j+1) \;<\; m_2 \;<\; (n+1)\,m_1 - n .
+\end{equation}
+
+Three consequences are worth stating. First, $n \ge 3$ is necessary:
+for $n = 2$ the two points $(1,1)$ and $(2,4)$ span a segment with
+empty interior, and the three equalities already pin $p$ down. Second,
+since the points lie on the convex curve $y = x^2$, the lower bound in
+\eqref{eq:p1slater2} exceeds $m_1^2$, so $m_2 > m_1^2$ --- a strictly
+positive variance --- is necessary but not sufficient. Third, on the
+boundary the feasible $p$ is unique and supported on at most two faces,
+so some $p_i = 0$: no strictly positive feasible point exists, Slater
+fails, and the dual optimum is not attained, the multipliers receding
+to infinity as the corresponding $p_i$ approach zero.
+
+\subsection*{5.\quad KKT conditions}
+
+Attach $\mu_i \ge 0$ to $p_i \ge 0$ and keep $\nu_0,\nu_1,\nu_2$ free.
+A pair $(p^\star,\nu^\star,\mu^\star)$ satisfies the KKT conditions when
+\[
+\begin{array}{llll}
+  \text{stationarity} &
+    \ln p_i^\star + 1 + \nu_0^\star + \nu_1^\star i
+      + \nu_2^\star i^2 - \mu_i^\star = 0, & i \in I,\\[2pt]
+  \text{primal feasibility} &
+    \displaystyle\sum_{i \in I} p^\star_i = 1,\quad
+    \sum_{i \in I} i p^\star_i = m_1,\quad
+    \sum_{i \in I} i^2 p^\star_i = m_2,\quad
+    p^\star_i \ge 0, & i \in I,\\[8pt]
+  \text{dual feasibility} & \mu^\star_i \ge 0, & i \in I,\\[2pt]
+  \text{complementary slackness} & \mu^\star_i p^\star_i = 0, & i \in I.
+\end{array}
+\]
+
+The nonnegativity multipliers are redundant here. Stationarity involves
+$\ln p_i^\star$, so it can only hold at $p_i^\star > 0$; complementary
+slackness then forces $\mu_i^\star = 0$ for every $i$. The system
+collapses to
+\[
+  p_i^\star = \exp\!\bigl(-1-\nu_0^\star-\nu_1^\star i
+      - \nu_2^\star i^2\bigr), \quad i \in I,
+  \qquad\text{together with the three moment equations,}
+\]
+which is \eqref{eq:p1gibbs} with $\nu_0^\star = \ln Z - 1$. The entropy
+acts as its own barrier: the constraint $p \ge 0$ is never active. Since
+the problem is convex, under \eqref{eq:p1slater} these conditions are
+both necessary and sufficient for optimality.
+
+\subsection*{Numerical check}
+
+\texttt{p1\_maxent.py} solves \eqref{eq:p1primal} with an interior-point
+conic solver and \eqref{eq:p1dualred} by quasi-Newton on two variables,
+for $n = 6$.
+
+\begin{center}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+case & $m_1$ & $m_2$ & $\nu_1^\star$ & $\nu_2^\star$
+  & $-H(p^\star)$ & duality gap\\
+\midrule
+fair    & 3.5 & 15.1667 & $-0.0000000$ & $+0.0000000$
+  & $-1.7917594677$ & $1.5\times10^{-9}$\\
+skewed  & 4.0 & 18.0    & $-1.2417518$ & $+0.1429377$
+  & $-1.6965357595$ & $2.3\times10^{-9}$\\
+tight   & 4.5 & 21.0    & $-5.6053109$ & $+0.6192405$
+  & $-1.2665057255$ & $1.4\times10^{-10}$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The largest discrepancy between the primal solution and the Gibbs form
+\eqref{eq:p1gibbs} rebuilt from the dual optimum was
+$1.8 \times 10^{-5}$. The fair case returns $\nu^\star = 0$ and the
+uniform distribution, as it must, since the uniform law already matches
+both moments and maximises entropy unconstrained.
+
+Taking $m_1 = 4$, $m_2 = 22$ puts the pair on the upper chord, where
+\eqref{eq:p1slater2} fails. The feasible set collapses to the single
+point $p = (0.4,0,0,0,0,0.6)$ --- supported only on faces $1$ and $6$,
+the chord's endpoints --- with $-H(p) = -0.6730$, confirming that
+boundary moment data leave no strictly positive feasible distribution.
+
+\section*{Problem 2.\quad Bilevel capacity and production \quad[15 pts]}
+
+\subsection*{1.\quad The bilevel program}
+
+\paragraph{Sets.} $J = \{1,2\}$, the two production facilities, indexed
+by $j$.
+
+\paragraph{Parameters.}
+\begin{center}
+\begin{tabular}{@{}llr@{}}
+\toprule
+Symbol & Meaning & Value\\
+\midrule
+$d$ & total demand, in units & $4$\\
+$\bar{x}$ & upper bound on installed capacity at facility 1, in units & $4$\\
+$c^{\mathrm{cap}}$ & capacity investment cost at facility 1, per unit & $0.8$\\
+$c^{\mathrm{prod}}$ & production cost at facility 2, per unit & $2$\\
+$q_1, q_2$ & follower cost coefficients, per squared unit
+  & $\tfrac12,\; 1$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Decision variables.} The leader chooses $x \in [0,\bar{x}]$,
+the capacity installed at facility 1. The follower, having observed
+$x$, chooses $y_j \ge 0$, the quantity produced at facility $j$.
+
+\paragraph{Program.} The leader minimises its own cost anticipating
+that the follower will respond optimally:
+\begin{equation}\label{eq:p2bilevel}
+\begin{aligned}
+  \minimize_{x,\,y}\quad & c^{\mathrm{cap}} x + c^{\mathrm{prod}} y_2\\
+  \text{s.t.}\quad & 0 \le x \le \bar{x},\\
+  & y \in \argmin_{y'}\Bigl\{\,
+      q_1 y_1'^{\,2} + q_2 y_2'^{\,2}
+      \;:\; y_1' + y_2' = d,\;\; 0 \le y_1' \le x,\;\; y_2' \ge 0
+      \Bigr\}.
+\end{aligned}
+\end{equation}
+
+With the data, the leader minimises $0.8x + 2y_2$ and the follower
+minimises $\tfrac12 y_1^2 + y_2^2$. The leader pays for capacity at
+facility 1 and for output at facility 2; the follower pays a convex
+production cost and ignores the leader's costs entirely. The two
+objectives conflict: the leader wants $y_1$ large to avoid the cost
+$c^{\mathrm{prod}} y_2$, but only the capacity $x$ --- which it must
+pay for --- forces the follower's hand.
+
+\paragraph{Classification (slides 8--10).} Constrained; continuous
+variables, compact; objectives and constraints convex quadratic and
+linear; deterministic; two stages in the Stackelberg sense; \emph{two
+players}, which is what makes the problem bilevel rather than a single
+nonlinear program.
+
+\subsection*{2.\quad Follower KKT, and the single-level reformulation}
+
+For fixed $x$ the follower solves a convex quadratic program. Attach
+$\lambda$ (free) to the demand equality, $\mu \ge 0$ to $y_1 \le x$,
+and $\alpha_j \ge 0$ to $y_j \ge 0$:
+\[
+  \mathcal{L}(y,\lambda,\mu,\alpha)
+  = \tfrac12 y_1^2 + y_2^2 + \lambda\,(y_1 + y_2 - d)
+    + \mu\,(y_1 - x) - \alpha_1 y_1 - \alpha_2 y_2 .
+\]
+The KKT conditions are
+\begin{equation}\label{eq:p2kkt}
+\begin{array}{ll}
+  \text{stationarity} & y_1 + \lambda + \mu - \alpha_1 = 0, \qquad
+                        2y_2 + \lambda - \alpha_2 = 0,\\[2pt]
+  \text{primal feasibility} & y_1 + y_2 = d, \quad y_1 \le x, \quad
+                              y_1, y_2 \ge 0,\\[2pt]
+  \text{dual feasibility} & \mu \ge 0, \quad \alpha_1, \alpha_2 \ge 0,\\[2pt]
+  \text{complementary slackness} & \mu\,(y_1 - x) = 0, \quad
+      \alpha_1 y_1 = 0, \quad \alpha_2 y_2 = 0 .
+\end{array}
+\end{equation}
+
+\paragraph{Why they are necessary and sufficient here.} Necessity does
+not need Slater: every follower constraint is affine, so the linearity
+constraint qualification holds at every feasible point and KKT is
+necessary at any minimiser. Sufficiency is the convexity half: the
+follower's objective has Hessian $\operatorname{diag}(1,2) \succ 0$ and
+the feasible set is a polyhedron, so any KKT point is a global
+minimiser. Strict convexity gives more --- the minimiser is
+\emph{unique} for each $x$ --- which matters for
+\eqref{eq:p2bilevel} itself: with a unique follower response there is
+no gap between the optimistic and pessimistic readings of the bilevel
+problem, and $\argmin$ is a genuine function of $x$.
+
+Replacing the inner $\argmin$ by \eqref{eq:p2kkt} gives the
+single-level problem
+\begin{equation}\label{eq:p2mpcc}
+\begin{aligned}
+  \minimize_{x,y,\lambda,\mu,\alpha}\quad
+    & c^{\mathrm{cap}} x + c^{\mathrm{prod}} y_2\\
+  \text{s.t.}\quad & 0 \le x \le \bar{x}, \quad
+    \text{all conditions in \eqref{eq:p2kkt}} ,
+\end{aligned}
+\end{equation}
+a mathematical program with complementarity constraints. It is not a
+convex program: the three complementarity conditions are the only
+nonconvexity, and they are what Part~3 removes.
+
+\subsection*{3.\quad Disjunctive linearisation}
+
+Each complementarity pair has the form $ab = 0$ with $a,b \ge 0$, which
+is the disjunction $(a = 0) \vee (b = 0)$. Introducing a binary
+$z \in \{0,1\}$ and valid upper bounds $M_a, M_b$,
+\[
+  ab = 0,\; a,b \ge 0
+  \qquad\Longleftrightarrow\qquad
+  a \le M_a z, \quad b \le M_b (1-z), \quad z \in \{0,1\},
+\]
+provided $a \le M_a$ and $b \le M_b$ hold at every point of interest.
+Applying this to the three pairs of \eqref{eq:p2kkt} gives the mixed
+integer quadratically constrained program
+\begin{equation}\label{eq:p2mip}
+\begin{aligned}
+  \minimize\quad & c^{\mathrm{cap}} x + c^{\mathrm{prod}} y_2\\
+  \text{s.t.}\quad
+    & y_1 + \lambda + \mu - \alpha_1 = 0, \qquad
+      2y_2 + \lambda - \alpha_2 = 0,\\
+    & y_1 + y_2 = d, \quad y_1 \le x, \quad 0 \le x \le \bar{x},
+      \quad y \ge 0, \quad \mu, \alpha \ge 0,\\
+    & \mu \le M^{\mathrm{dual}} z_\mu, \qquad
+      x - y_1 \le M^{\mathrm{prim}}(1 - z_\mu),\\
+    & \alpha_1 \le M^{\mathrm{dual}} z_1, \qquad
+      y_1 \le M^{\mathrm{prim}}(1 - z_1),\\
+    & \alpha_2 \le M^{\mathrm{dual}} z_2, \qquad
+      y_2 \le M^{\mathrm{prim}}(1 - z_2),\\
+    & z_\mu, z_1, z_2 \in \{0,1\} .
+\end{aligned}
+\end{equation}
+The objective and all remaining constraints are linear, so
+\eqref{eq:p2mip} is a mixed integer \emph{linear} program.
+
+\paragraph{Justifying the bounds.} A big-M is valid only if it excludes
+no KKT point; one chosen too small silently replaces the follower's
+problem by a different one, and the leader then optimises against a
+response that is not the follower's.
+
+\emph{Primal side.} From $y_1 + y_2 = d$ and $y \ge 0$ we get
+$y_1, y_2 \in [0,d]$. From $0 \le y_1 \le x \le \bar{x}$ the slack
+satisfies $x - y_1 \in [0,\bar{x}]$. With $d = \bar{x} = 4$,
+$M^{\mathrm{prim}} = 4$ is valid and attained.
+
+\emph{Dual side.} First, $\alpha_2 = 0$ always. If $\alpha_2 > 0$ then
+$y_2 = 0$, hence $y_1 = d = 4$; stationarity then gives
+$\lambda = \alpha_2 > 0$ from the second equation and
+$4 + \lambda + \mu = 0$ from the first, so $\lambda \le -4$ --- a
+contradiction. Therefore $y_2 > 0$ at every follower optimum and
+$\lambda = -2y_2 \in [-2d, 0]$. When $y_1 > 0$ we have $\alpha_1 = 0$
+and
+\[
+  \mu = -\lambda - y_1 = 2y_2 - y_1 \;\le\; 2d = 8 ,
+\]
+so $M^{\mathrm{dual}} = 8$ is valid. It is also tight: eliminating
+$y_2$ gives the follower objective
+$\tfrac32 y_1^2 - 8y_1 + 16$, minimised at $y_1 = 8/3$, so
+$y_1 = \min\{x, 8/3\}$ and, for $x < 8/3$,
+$\mu(x) = 8 - 3x$, which reaches $8$ at $x = 0$.
+
+\paragraph{The cost of getting it wrong.} \texttt{p2\_bilevel.py}
+re-solves \eqref{eq:p2mip} with $M^{\mathrm{dual}} = 2$. Every
+$x < 2$ becomes infeasible, so the model asserts the follower has no
+optimal response on more than half the leader's range. The optimum
+nevertheless survives, because it sits at $x^\star = 8/3$ where
+$\mu^\star = 0$, and the run still returns $4.8$. That is the point
+worth taking: an unjustified bound can return the right number while
+describing the wrong problem, so the bound has to be argued, not tuned
+until the answer looks plausible.
+
+\paragraph{Alternatives.} The disjunction can also be imposed directly,
+without any $M$: as an SOS1 constraint on each pair, or as indicator
+constraints $z = 1 \Rightarrow a = 0$. Both avoid the validity question
+and the weak continuous relaxation that a large $M$ produces, at the
+cost of a branching rule the solver must support.
+
+\subsection*{Solution and numerical check}
+
+Since $y_1 = \min\{x, 8/3\}$ and $y_2 = d - y_1$, the leader's cost is
+piecewise linear in $x$:
+\[
+  c^{\mathrm{cap}} x + c^{\mathrm{prod}} y_2(x) =
+  \begin{cases}
+    8 - 1.2\,x, & 0 \le x < 8/3 \quad \text{(decreasing)},\\[2pt]
+    0.8\,x + 8/3, & 8/3 \le x \le 4 \quad \text{(increasing)},
+  \end{cases}
+\]
+so the optimum is the kink:
+\[
+  x^\star = \tfrac83 \approx 2.6667, \qquad
+  y^\star = \bigl(\tfrac83, \tfrac43\bigr), \qquad
+  \lambda^\star = -\tfrac83, \qquad
+  \mu^\star = \alpha_1^\star = \alpha_2^\star = 0,
+\]
+with leader cost $0.8 \cdot \tfrac83 + 2 \cdot \tfrac43 = 4.8$. A grid
+search over $400{,}001$ values of $x$ with the follower solved exactly
+returns $x^\star = 2.666670$ and cost $4.800003$; the MILP
+\eqref{eq:p2mip} returns $x^\star = 2.66666667$ and cost
+$4.80000000$.
+
+\begin{remark}
+The optimum is degenerate: $y_1^\star = x^\star$ makes the capacity
+constraint active while $\mu^\star = 0$, so \emph{both} sides of that
+complementarity vanish and both branches $z_\mu = 0$ and $z_\mu = 1$
+are feasible there. This is the weak-complementarity case, and it is
+also why the invalid bound above escaped detection.
+\end{remark}
+
+\section*{Problem 3.\quad Two-stage stochastic LP by Benders \quad[20 pts]}
+
+\subsection*{1.\quad The two-stage stochastic linear program}
+
+\paragraph{Sets.} $I = \{1,2,3\}$, the assets, indexed by $i$;
+$S = \{1,2,3\}$, the scenarios, indexed by $s$.
+
+\paragraph{Parameters.}
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Symbol & Meaning & Value\\
+\midrule
+$c_i$ & transaction cost per unit of wealth placed in asset $i$
+  & $(0.004,\,0.006,\,0.003)$\\
+$p_s$ & probability of scenario $s$ & $(0.3,\,0.4,\,0.3)$\\
+$G_{si}$ & gross return $1+r_{si}$ of asset $i$ in scenario $s$
+  & matrix below\\
+$L_s$ & required liability in scenario $s$, in units of wealth
+  & $(1.01,\,1.00,\,1.02)$\\
+$k_s$ & borrowing cost coefficient in scenario $s$, per unit borrowed
+  & $(0.08,\,0.09,\,0.10)$\\
+\bottomrule
+\end{tabular}
+\end{center}
+\[
+  G = \begin{bmatrix}
+    1.06 & 1.01 & 0.98\\
+    0.95 & 1.03 & 1.02\\
+    1.10 & 0.97 & 0.96
+  \end{bmatrix}.
+\]
+
+\paragraph{Decision variables.} First stage, before the scenario is
+known: $x_i \ge 0$, the fraction of initial wealth placed in asset $i$.
+Second stage, after scenario $s$ is observed: $b_s \ge 0$, the amount
+borrowed in scenario $s$, in units of wealth.
+
+\paragraph{Program.} In extensive form,
+\begin{equation}\label{eq:p3ef}
+\begin{aligned}
+  \minimize_{x,\,b}\quad
+    & \sum_{i \in I} c_i x_i
+      + \sum_{s \in S} p_s k_s b_s\\
+  \text{s.t.}\quad
+    & \sum_{i \in I} x_i = 1,\\
+    & \sum_{i \in I} G_{si} x_i + b_s \;\ge\; L_s, & s \in S,\\
+    & x_i \ge 0,\; i \in I, \qquad b_s \ge 0,\; s \in S .
+\end{aligned}
+\end{equation}
+Equivalently, in the two-stage form that Benders exploits,
+\begin{equation}\label{eq:p3two}
+  \minimize_{x}\;\Bigl\{\,
+    \sum_{i \in I} c_i x_i + \sum_{s \in S} p_s\, Q_s(x)
+    \;:\; \sum_{i \in I} x_i = 1,\;\; x \ge 0 \Bigr\},
+  \qquad
+  Q_s(x) = \minimize_{b_s \ge 0}\;\Bigl\{\,
+    k_s b_s : b_s \ge L_s - \textstyle\sum_{i} G_{si} x_i \Bigr\}.
+\end{equation}
+
+\paragraph{Classification (slides 8--10).} Constrained; continuous
+variables, compact; linear objective and constraints; \emph{stochastic}
+parameters on a finite support of three scenarios; two decision stages;
+single player.
+
+\subsection*{2.\quad The second-stage subproblem and its dual}
+
+Fix $x$ and write the shortfall $h_s(x) = L_s - \sum_i G_{si} x_i$. The
+scenario subproblem and its dual, with $\pi_s$ attached to the
+liability row, are
+\[
+  Q_s(x) = \minimize_{b_s \ge 0}\; k_s b_s
+    \;\;\text{s.t.}\;\; b_s \ge h_s(x) \;\;[\pi_s \ge 0]
+  \qquad\Longleftrightarrow\qquad
+  Q_s(x) = \maximize_{\pi_s}\; \pi_s h_s(x)
+    \;\;\text{s.t.}\;\; 0 \le \pi_s \le k_s .
+\]
+The upper bound comes from the sign condition on $b_s$: the Lagrangian
+is $(k_s - \pi_s) b_s + \pi_s h_s(x)$, whose infimum over $b_s \ge 0$
+is $-\infty$ unless $\pi_s \le k_s$. Both are solved in closed form,
+\begin{equation}\label{eq:p3sub}
+  Q_s(x) = k_s \bigl[h_s(x)\bigr]_+,
+  \qquad
+  \pi_s^\star \in
+  \begin{cases}
+    \{k_s\}, & h_s(x) > 0,\\
+    [\,0,\,k_s\,], & h_s(x) = 0,\\
+    \{0\}, & h_s(x) < 0 .
+  \end{cases}
+\end{equation}
+
+Two structural facts follow, and both are used in Part~3. The
+subproblem is feasible for \emph{every} $x$, since $b_s$ may be taken
+arbitrarily large --- the problem has relatively complete recourse, so
+no feasibility cuts are ever needed. And the dual feasible set
+$[0,k_s]$ does not depend on $x$: this is fixed recourse, which is what
+makes a cut generated at one $x$ valid at all others.
+
+\subsection*{3.\quad The Benders master problem and its optimality cuts}
+
+Let $\theta$ represent $\sum_s p_s Q_s(x)$. For any dual-feasible
+$\pi^{(t)}$, weak duality in \eqref{eq:p3sub} gives
+$Q_s(x) \ge \pi_s^{(t)} h_s(x)$ \emph{for every} $x$, since
+$\pi^{(t)}$ stays feasible as $x$ moves. Taking the expectation,
+\begin{equation}\label{eq:p3cut}
+  \theta \;\ge\; \sum_{s \in S} p_s \pi_s^{(t)}
+    \Bigl( L_s - \sum_{i \in I} G_{si} x_i \Bigr)
+  \;=\; \alpha_t - \sum_{i \in I} \beta_{ti} x_i,
+  \qquad
+  \alpha_t = \sum_{s} p_s \pi^{(t)}_s L_s, \quad
+  \beta_{ti} = \sum_{s} p_s \pi^{(t)}_s G_{si},
+\end{equation}
+a globally valid optimality cut. After $T$ iterations the master is
+\begin{equation}\label{eq:p3master}
+\begin{aligned}
+  \minimize_{x,\,\theta}\quad & \sum_{i \in I} c_i x_i + \theta\\
+  \text{s.t.}\quad & \sum_{i \in I} x_i = 1, \quad x \ge 0,
+    \quad \theta \ge 0,\\
+  & \theta \ge \alpha_t - \sum_{i \in I} \beta_{ti} x_i,
+    & t = 1,\dots,T .
+\end{aligned}
+\end{equation}
+The bound $\theta \ge 0$ keeps the first master bounded and is valid
+because $Q_s \ge 0$. Solving \eqref{eq:p3master} gives a lower bound
+$\mathrm{LB} = c\T x^{(t)} + \theta^{(t)}$, since the master is a
+relaxation; evaluating \eqref{eq:p3sub} at $x^{(t)}$ gives a feasible
+point and hence
+$\mathrm{UB} = \min_{\tau \le t}\{c\T x^{(\tau)} + \sum_s p_s
+Q_s(x^{(\tau)})\}$. \textbf{Convergence criterion:} stop when
+$\mathrm{UB} - \mathrm{LB} \le \varepsilon$. The method terminates
+finitely because only finitely many distinct $\pi$ vectors can be
+generated --- the dual feasible region is a box with $2^{|S|}$ vertices
+--- so only finitely many distinct cuts exist.
+
+\subsection*{4.\quad Implementation and results}
+
+\texttt{p3\_benders.py} implements \eqref{eq:p3master} with
+$\varepsilon = 10^{-9}$ and solves \eqref{eq:p3ef} separately as a
+reference.
+
+\begin{center}
+\begin{tabular}{@{}rrrr@{}}
+\toprule
+iteration & lower bound & upper bound & gap\\
+\midrule
+1 & 0.0030000000 & 0.0055200000 & $2.52 \times 10^{-3}$\\
+2 & 0.0034117647 & 0.0038000000 & $3.88 \times 10^{-4}$\\
+3 & 0.0036428571 & 0.0038000000 & $1.57 \times 10^{-4}$\\
+4 & 0.0037885714 & 0.0037885714 & $3.90 \times 10^{-18}$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Optimal solution.}
+\[
+  x^\star = \bigl(\tfrac37,\, 0,\, \tfrac47\bigr)
+          = (0.428571,\, 0,\, 0.571429), \qquad
+  b^\star = (0,\, 0.01,\, 0), \qquad
+  z^\star = 0.0037885714 ,
+\]
+reached in \textbf{4 iterations}. The extensive form \eqref{eq:p3ef}
+returns the same objective to $2.2 \times 10^{-18}$ and the same
+portfolio to $1.2 \times 10^{-15}$.
+
+\begin{center}
+\begin{tabular}{@{}rrrrrr@{}}
+\toprule
+scenario & wealth $\sum_i G_{si}x^\star_i$ & liability $L_s$
+  & shortfall & $b_s^\star$ & $\pi_s^\star$\\
+\midrule
+1 & 1.014286 & 1.01 & $-4.29\times10^{-3}$ & 0 & 0\\
+2 & 0.990000 & 1.00 & $+1.00\times10^{-2}$ & 0.01 & 0.09\\
+3 & 1.020000 & 1.02 & $0$ & 0 & $[0,\,0.10]$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Reading the solution.} Asset 2 is never held: it carries the
+highest transaction cost, $0.006$, and is never the best return in any
+scenario, so it is dominated. The remaining two are mixed so that
+scenario 3 --- the one with the largest liability, $1.02$ --- is met
+\emph{exactly}, scenario 1 is met with slack, and only scenario 2
+requires borrowing, of $0.01$ at coefficient $0.09$ with probability
+$0.4$. The expected borrowing cost, $0.00036$, is about one tenth of
+the total; the rest is the transaction cost $0.024/7 = 0.003429$.
+
+\begin{remark}
+Scenario 3 is tight with $b_3^\star = 0$, so by \eqref{eq:p3sub} its
+subproblem dual is \emph{not unique}: any $\pi_3 \in [0,0.10]$ is
+optimal, and the extensive form reports $0.083810$, strictly interior.
+This threatens nothing. The cut \eqref{eq:p3cut} is valid for any
+dual-feasible $\pi$, not only an optimal one, so a degenerate tie can
+weaken a cut but cannot invalidate it. Re-running the method with
+$\pi_3/k_3 \in \{0,\,0.25,\,0.5,\,0.838,\,1\}$ gave 4 iterations and
+the same optimum in every case.
+\end{remark}
+
+\section*{Problem 4.\quad Tracking error: QP, SOCP and SDP \quad[30 pts]}
+
+\subsection*{1.\quad The convex quadratic program}
+
+\paragraph{Sets.} $I = \{1,2,3\}$, the assets, indexed by $i$.
+
+\paragraph{Parameters.} $\bar{x} = (0.7,\,0.2,\,0.1)$, the benchmark
+weights, dimensionless; $\Sigma = \operatorname{diag}(4,1,1)$, the
+return covariance matrix; $\rho = 1$, the variance budget.
+
+\paragraph{Decision variables.} $x_i \ge 0$, the portfolio weight on
+asset $i$, dimensionless.
+
+\paragraph{Program.}
+\begin{equation}\label{eq:p4qp}
+\begin{aligned}
+  \minimize_{x}\quad & \sum_{i \in I}(x_i - \bar{x}_i)^2
+    \;=\; \|x - \bar{x}\|_2^2\\
+  \text{s.t.}\quad & x\T \Sigma x \le \rho,\\
+    & \sum_{i \in I} x_i = 1,\\
+    & x_i \ge 0, \quad i \in I .
+\end{aligned}
+\end{equation}
+
+\paragraph{Why it is convex.} The objective
+$\|x-\bar{x}\|_2^2$ has Hessian $2I \succ 0$, so it is strictly convex.
+The risk function $x \mapsto x\T\Sigma x$ has Hessian
+$2\Sigma = \operatorname{diag}(8,2,2) \succeq 0$, so it is a convex
+quadratic and its sublevel set $\{x : x\T\Sigma x \le \rho\}$ is a
+convex set --- a solid ellipsoid. The budget equality and the sign
+conditions are affine. A convex objective over the intersection of
+convex sets is a convex program, and here strict convexity of the
+objective makes the minimiser unique.
+
+\paragraph{Classification (slides 8--10).} Constrained; continuous
+variables, compact; objective convex quadratic, constraints one convex
+quadratic and the rest linear; deterministic; single stage; single
+player.
+
+\begin{remark}
+The benchmark is itself infeasible:
+$\bar{x}\T\Sigma\bar{x} = 4(0.49)+0.04+0.01 = 2.01 > \rho$. The risk
+constraint therefore binds at the optimum, and the problem is a genuine
+trade-off rather than a trivial one returning $x^\star = \bar{x}$.
+Asset 1 carries four times the variance of the others, so matching the
+benchmark's $0.7$ weight on it is what the budget forbids.
+\end{remark}
+
+\subsection*{2.\quad Second-order cone form with a linear objective}
+
+Write $\mathcal{Q}^{m+1} = \{(u,v) \in \R \times \R^{m} :
+\|v\|_2 \le u\}$ for the second-order cone, and
+$\Sigma^{1/2} = \operatorname{diag}(2,1,1)$, so that
+$x\T\Sigma x = \|\Sigma^{1/2}x\|_2^2$. Minimising
+$\|x-\bar{x}\|_2$ and minimising its square have the same argument, so
+introducing an epigraph variable $t$,
+\begin{equation}\label{eq:p4socp}
+\begin{aligned}
+  \minimize_{t,\,x}\quad & t\\
+  \text{s.t.}\quad
+    & (t,\; x - \bar{x}) \in \mathcal{Q}^{4},\\
+    & (1,\; \Sigma^{1/2} x) \in \mathcal{Q}^{4},\\
+    & \textstyle\sum_{i \in I} x_i = 1, \qquad x \ge 0 .
+\end{aligned}
+\end{equation}
+The objective is now linear and the only nonlinearity sits in two
+second-order cones. The optimal values are related by
+$t^\star = \sqrt{\text{optimal value of } \eqref{eq:p4qp}}$, and the
+optimal $x$ is the same.
+
+\subsection*{3.\quad The conic dual}
+
+Assign $(\sigma,u) \in \mathcal{Q}^4$ to the first cone,
+$(\tau,w) \in \mathcal{Q}^4$ to the second --- the second-order cone is
+self-dual, so the dual variables live in the same cone --- together
+with $\nu \in \R$ for the budget equality and $z \in \R^3_+$ for
+$x \ge 0$. The Lagrangian is
+\[
+  \begin{aligned}
+    L &= t - \bigl[\sigma t + u\T(x-\bar{x})\bigr]
+          - \bigl[\tau + w\T \Sigma^{1/2} x\bigr]
+          - \nu\Bigl(\sum_i x_i - 1\Bigr) - z\T x\\
+      &= t(1-\sigma)
+          - x\T\bigl(u + \Sigma^{1/2}w + \nu \mathbf{1} + z\bigr)
+          + u\T\bar{x} - \tau + \nu .
+  \end{aligned}
+\]
+The infimum over $t$ is finite only if $\sigma = 1$, and over $x$ only
+if $u + \Sigma^{1/2}w + \nu\mathbf{1} + z = 0$. Eliminating
+$z = -(u + \Sigma^{1/2}w + \nu\mathbf{1}) \ge 0$ turns that into an
+inequality, and $\sigma = 1$ with $(\sigma,u) \in \mathcal{Q}^4$ reads
+$\|u\|_2 \le 1$. The dual is
+\begin{equation}\label{eq:p4socpdual}
+\begin{aligned}
+  \maximize_{u,\,w,\,\nu,\,\tau}\quad & \bar{x}\T u + \nu - \tau\\
+  \text{s.t.}\quad & \|u\|_2 \le 1, \qquad \|w\|_2 \le \tau,\\
+    & u + \Sigma^{1/2} w + \nu \mathbf{1} \le 0 .
+\end{aligned}
+\end{equation}
+Since $\tau$ enters the objective only as $-\tau$ and is otherwise
+constrained only by $\|w\|_2 \le \tau$, it is optimal to set
+$\tau = \|w\|_2$, giving the simplified dual
+\begin{equation}\label{eq:p4socpdual2}
+  \maximize_{u,\,w,\,\nu}\quad
+    \bar{x}\T u + \nu - \|w\|_2
+  \qquad\text{s.t.}\qquad
+    \|u\|_2 \le 1, \qquad
+    u + \Sigma^{1/2} w + \nu \mathbf{1} \le 0 .
+\end{equation}
+
+\paragraph{Slater and strong duality.} For a conic program, Slater asks
+for a feasible point strictly inside the cones, the affine equality
+being required only in the relative interior sense. Take
+$x = (0.1,\,0.45,\,0.45)$ and any $t > \|x-\bar{x}\|_2$. Then
+$\sum_i x_i = 1$, $x > 0$ componentwise, and
+\[
+  \|\Sigma^{1/2}x\|_2^2 = 4(0.1)^2 + (0.45)^2 + (0.45)^2
+  = 0.04 + 0.405 = 0.445 < 1 ,
+\]
+so both cone constraints hold strictly. Slater's condition is therefore
+satisfied, and strong duality holds with the dual optimum
+\emph{attained}: the optimal values of \eqref{eq:p4socp} and
+\eqref{eq:p4socpdual2} coincide and there is no duality gap.
+
+\subsection*{4.\quad Schur complement and the SDP form}
+
+The Schur complement theorem states that for $A \succ 0$,
+\[
+  \begin{bmatrix} c & b\T \\ b & A \end{bmatrix} \succeq 0
+  \qquad\Longleftrightarrow\qquad
+  c - b\T A^{-1} b \ge 0 .
+\]
+Applying it with $A = I_3$ to each quadratic constraint turns both into
+linear matrix inequalities. For the objective, introducing
+$\tau \ge \|x - \bar{x}\|_2^2$,
+\[
+  \begin{bmatrix} \tau & (x-\bar{x})\T \\ x-\bar{x} & I_3 \end{bmatrix}
+  \succeq 0
+  \quad\Longleftrightarrow\quad
+  \tau - (x-\bar{x})\T(x-\bar{x}) \ge 0 ,
+\]
+and for the risk constraint, writing
+$x\T\Sigma x = (\Sigma^{1/2}x)\T(\Sigma^{1/2}x)$,
+\[
+  \begin{bmatrix} 1 & (\Sigma^{1/2}x)\T \\ \Sigma^{1/2}x & I_3
+  \end{bmatrix} \succeq 0
+  \quad\Longleftrightarrow\quad
+  1 - x\T \Sigma x \ge 0 .
+\]
+Hence the semidefinite program
+\begin{equation}\label{eq:p4sdp}
+\begin{aligned}
+  \minimize_{\tau,\,x}\quad & \tau\\
+  \text{s.t.}\quad
+    & M_1(\tau,x) :=
+      \begin{bmatrix} \tau & (x-\bar{x})\T \\ x-\bar{x} & I_3
+      \end{bmatrix} \succeq 0,\\
+    & M_2(x) :=
+      \begin{bmatrix} 1 & (\Sigma^{1/2}x)\T \\ \Sigma^{1/2}x & I_3
+      \end{bmatrix} \succeq 0,\\
+    & \textstyle\sum_{i \in I} x_i = 1, \qquad x \ge 0 ,
+\end{aligned}
+\end{equation}
+with a linear objective and affine matrix constraints. Note that
+$\tau$ is the \emph{squared} tracking error, so
+$\tau^\star = (t^\star)^2$ with $t^\star$ from \eqref{eq:p4socp}; the
+two formulations share the same $x^\star$ but report objectives on
+different scales, which Part~6 checks explicitly.
+
+\subsection*{5.\quad The dual SDP}
+
+Attach $Y_1 \succeq 0$ and $Y_2 \succeq 0$ to the two blocks, $\nu$ to
+the budget and $z \ge 0$ to $x \ge 0$, and partition conformably,
+\[
+  Y_1 = \begin{bmatrix} \eta_1 & y_1\T \\ y_1 & \Upsilon_1\end{bmatrix},
+  \qquad
+  Y_2 = \begin{bmatrix} \eta_2 & y_2\T \\ y_2 & \Upsilon_2\end{bmatrix},
+  \qquad \eta_j \in \R,\; y_j \in \R^3 .
+\]
+Using $\langle Y_1, M_1\rangle = \eta_1 \tau
++ 2y_1\T(x-\bar{x}) + \tr \Upsilon_1$ and
+$\langle Y_2, M_2\rangle = \eta_2 + 2y_2\T\Sigma^{1/2}x + \tr\Upsilon_2$,
+the Lagrangian is
+\[
+  L = \tau(1 - \eta_1)
+    - x\T\bigl(2y_1 + 2\Sigma^{1/2}y_2 + \nu\mathbf{1} + z\bigr)
+    + 2y_1\T\bar{x} - \tr\Upsilon_1 - \eta_2 - \tr\Upsilon_2 + \nu ,
+\]
+so the infimum is finite only when $\eta_1 = 1$ and
+$2y_1 + 2\Sigma^{1/2}y_2 + \nu\mathbf{1} + z = 0$, giving
+\begin{equation}\label{eq:p4sdpdual}
+\begin{aligned}
+  \maximize\quad & 2\bar{x}\T y_1 - \tr\Upsilon_1
+    - \eta_2 - \tr\Upsilon_2 + \nu\\
+  \text{s.t.}\quad
+    & \begin{bmatrix} 1 & y_1\T\\ y_1 & \Upsilon_1\end{bmatrix}
+      \succeq 0, \qquad
+      \begin{bmatrix} \eta_2 & y_2\T\\ y_2 & \Upsilon_2\end{bmatrix}
+      \succeq 0,\\
+    & 2y_1 + 2\Sigma^{1/2}y_2 + \nu\mathbf{1} \le 0 .
+\end{aligned}
+\end{equation}
+The matrix variables can be eliminated. By Schur, $Y_1 \succeq 0$ with
+$\eta_1 = 1$ means $\Upsilon_1 \succeq y_1 y_1\T$, and since
+$-\tr\Upsilon_1$ is maximised by taking $\Upsilon_1$ as small as
+possible, $\Upsilon_1 = y_1 y_1\T$ and $\tr\Upsilon_1 = \|y_1\|_2^2$.
+Likewise $\Upsilon_2 = y_2 y_2\T/\eta_2$ gives
+$-\eta_2 - \|y_2\|_2^2/\eta_2$, maximised over $\eta_2 > 0$ at
+$\eta_2 = \|y_2\|_2$, worth $-2\|y_2\|_2$. Substituting $a = 2y_1$ and
+$w = 2y_2$,
+\begin{equation}\label{eq:p4sdpdual2}
+  \maximize_{a,\,w,\,\nu}\quad
+    \bar{x}\T a - \tfrac14\|a\|_2^2 - \|w\|_2 + \nu
+  \qquad\text{s.t.}\qquad
+    a + \Sigma^{1/2} w + \nu \mathbf{1} \le 0 .
+\end{equation}
+
+\begin{remark}
+Comparing \eqref{eq:p4socpdual2} with \eqref{eq:p4sdpdual2}, the two
+duals share the constraint and the terms $\nu$ and $-\|w\|_2$, and
+differ only in how the tracking error is priced: the SOCP dual carries
+the constraint $\|u\|_2 \le 1$, the SDP dual the quadratic
+$-\tfrac14\|a\|_2^2$. That is exactly the difference between the
+Fenchel conjugates of $\|\cdot\|_2$ and $\|\cdot\|_2^2$, which is the
+only place the two primals differ.
+\end{remark}
+
+\subsection*{6.\quad Implementation}
+
+\texttt{p4\_conic.py} builds \eqref{eq:p4socp} and \eqref{eq:p4sdp} in
+CVXPY and solves each with the open-source conic solvers Clarabel and
+SCS; times are the median of nine solves.
+
+\begin{center}
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+form & solver & objective & $x_1$ & $x_2$ & $x_3$ & time (ms)\\
+\midrule
+QP   & Clarabel & 0.0855492535 & 0.461424 & 0.310037 & 0.228539 & ---\\
+SOCP & Clarabel & 0.2924880336 & 0.461424 & 0.310037 & 0.228539 & 1.06\\
+SOCP & SCS      & 0.2924833119 & 0.461426 & 0.310037 & 0.228538 & 1.16\\
+SDP  & Clarabel & 0.0855492525 & 0.461424 & 0.310037 & 0.228539 & 2.53\\
+SDP  & SCS      & 0.0855451999 & 0.461424 & 0.310038 & 0.228539 & 1.71\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Consistency.} The SOCP reports the norm and the SDP its
+square, so the check is $(t^\star)^2 = \tau^\star$:
+\[
+  (t^\star)^2 = 0.0855492498, \qquad
+  \tau^\star = 0.0855492525, \qquad
+  \bigl|(t^\star)^2 - \tau^\star\bigr| = 2.7\times10^{-9},
+\]
+against the QP value $0.0855492535$, and the portfolios agree to
+$\max_i|x^{\mathrm{socp}}_i - x^{\mathrm{sdp}}_i| =
+2.0\times10^{-7}$. The budget holds to $10^{-10}$ and the risk
+constraint is active at $x^\star{}\T\Sigma x^\star = 1.0000000048$,
+confirming the remark in Part~1. The two formulations describe the same
+problem.
+
+\paragraph{The hand-derived duals.} Solving the two duals
+numerically and comparing each against its own primal,
+\[
+  \begin{array}{lrrr}
+    \toprule
+    \text{dual} & \text{dual value} & \text{primal value}
+      & \text{gap}\\
+    \midrule
+    \text{SOCP, \eqref{eq:p4socpdual2}}
+      & 0.2924880247 & 0.2924880336 & 8.8\times10^{-9}\\
+    \text{SDP, \eqref{eq:p4sdpdual2}}
+      & 0.0855492521 & 0.0855492525 & 3.9\times10^{-10}\\
+    \bottomrule
+  \end{array}
+\]
+The vanishing gaps confirm both the derivations and the Slater
+argument of Part~3.
+
+\paragraph{Computational performance.} At $n = 3$ the times above are
+dominated by solver setup, so they are not a basis for comparison. The
+difference is structural and appears as the problem grows: the SDP
+carries two $(n+1)\times(n+1)$ blocks where the SOCP carries two cones
+of length $n+1$. Repeating the experiment on random instances:
+
+\begin{center}
+\begin{tabular}{@{}rrrrr@{}}
+\toprule
+$n$ & SOCP solve (ms) & SDP solve (ms) & ratio
+  & $|(t^\star)^2 - \tau^\star|$\\
+\midrule
+  3 & 0.12 &   0.57 & $4.8\times$   & $1.9\times10^{-10}$\\
+ 10 & 0.21 &   1.92 & $9.1\times$   & $6.2\times10^{-11}$\\
+ 30 & 0.40 &  10.03 & $25.1\times$  & $7.0\times10^{-11}$\\
+ 60 & 0.85 &  66.54 & $78.7\times$  & $1.4\times10^{-10}$\\
+100 & 1.36 & 337.52 & $248.7\times$ & $4.3\times10^{-10}$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The two agree to better than $10^{-9}$ throughout while the cost ratio
+grows from $5$ to $249$. The conclusion is the practical one: the Schur
+complement is the right tool for \emph{establishing} that a quadratic
+constraint is conic-representable, but lifting a second-order cone into
+a semidefinite block is a strictly worse way to solve the resulting
+problem. Use the smallest cone that represents the constraint.
+
+\vspace{1em}
+\hrule
+\vspace{0.6em}
+{\small \sloppy \texttt{p1\_maxent.py} solves the entropy primal and its
+two-variable dual and checks the Gibbs recovery and the Slater
+boundary; \texttt{p2\_bilevel.py} solves the bilevel problem by grid
+search and by the big-M MILP and measures the multiplier range that
+justifies the bounds; \texttt{p3\_benders.py} runs Benders against the
+extensive form and tests the degenerate dual tie-break;
+\texttt{p4\_conic.py} builds the SOCP and SDP in CVXPY, checks both
+hand-derived duals, and measures how the two scale.\par}
+
+\end{document}

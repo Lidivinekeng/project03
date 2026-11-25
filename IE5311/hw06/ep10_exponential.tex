@@ -1,0 +1,141 @@
+%=======================================================================
+%  IE 5311-001 (D01) Exploration Problem EP10
+%  One page, single spacing, 10 pt, 1-inch margins, as the sheet requires.
+%  Content past page 1 is not graded, so the page limit is hard.
+%  Sections map onto the parts asked: what the cone is, its dual and
+%  characterisation, problems that use it, and conic duality.
+%
+%  IF IT SPILLS ONTO A SECOND PAGE, delete in this order until it fits.
+%    1. the last sentence of section 5
+%    2. the n = 50 and n = 500 rows of the table in section 5
+%    3. the sentence in section 3 beginning "Logistic regression"
+%  Do not cut the derivation in section 2 or the table in section 5:
+%  they are the dual cone and the measured result.
+%=======================================================================
+\documentclass[10pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+
+\newcommand{\T}{^{\!\top}}
+
+\pagestyle{empty}
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+{\large\bfseries EP10.\quad Exponential cones and their duals}\\[1pt]
+{\small Lidivine Kengne \quad\textbar\quad IE 5311-001 (D01), Homework 6}
+\vspace{0.3em}
+
+\textbf{1. What it is.}
+The exponential cone is the closure of the region under a perspective
+exponential,
+\[
+  K_{\exp} = \operatorname{cl}
+  \bigl\{ (x,y,z) \in \mathbb{R}^3 \;:\; y > 0, \;\;
+    y\,e^{x/y} \le z \bigr\}
+  \;=\;
+  \bigl\{ y > 0,\; y e^{x/y} \le z \bigr\}
+  \cup
+  \bigl\{ (x,0,z) : x \le 0,\; z \ge 0 \bigr\}.
+\]
+The function $(x,y) \mapsto y e^{x/y}$ is the perspective of $e^{x}$,
+hence convex and positively homogeneous, so $K_{\exp}$ is a closed
+convex cone. Unlike the power cone it is not self-dual, and unlike the
+second-order cone it is not symmetric --- which is why interior-point
+solvers need dedicated barriers for it.
+
+\textbf{2. The dual cone, derived.}
+Require $\langle (x,y,z),(u,v,w)\rangle \ge 0$ for every
+$(x,y,z) \in K_{\exp}$. On the open branch, $z$ is free above
+$y e^{x/y}$, so $w \ge 0$ is forced and the binding case is
+$z = y e^{x/y}$. Dividing by $y > 0$ and writing $r = x/y$, the
+requirement becomes
+\[
+  u r + v + w e^{r} \;\ge\; 0 \qquad\text{for all } r \in \mathbb{R}.
+\]
+The left side is convex in $r$; its minimum is at $e^{r} = -u/w$, which
+needs $u < 0$, and substituting gives $u\ln(-u/w) + v - u \ge 0$.
+Dividing by $u < 0$ reverses the inequality and yields
+$\ln(-u/w) \le 1 - v/u$, that is
+\[
+  K_{\exp}^{*} = \operatorname{cl}\bigl\{ (u,v,w) :
+    u < 0, \; w \ge 0, \; -u\,e^{v/u - 1} \le w \bigr\}
+  \cup \bigl\{ (0,v,w) : v \ge 0,\; w \ge 0 \bigr\}.
+\]
+Sampling (\texttt{ep10\_exponential.py}) confirms both directions: of
+the pairs drawn from $K_{\exp} \times K^*_{\exp}$ none paired
+negatively, and all $300$ sampled points outside the claimed dual
+admitted a cone element they paired negatively with. The witness search
+has to span $|x|$ up to $10^{6}$: for $u$ just above zero the pairing
+turns negative only once $ux$ dominates $vy$, so a narrow search
+wrongly suggests such points belong to the dual.
+
+\textbf{3. Where it arises --- including Problem 1 of this homework.}
+Anything built from $e^{x}$, $\ln x$ or $x \ln x$. Problem~1 is the
+clean case. Since $-p\ln p \ge u \iff p\,e^{u/p} \le 1$, the maximum
+entropy program is
+\[
+  \min_{p,\,u}\; -\sum_{i \in I} u_i
+  \quad\text{s.t.}\quad
+  (u_i,\, p_i,\, 1) \in K_{\exp},\;\; i \in I,
+  \qquad
+  \sum_i p_i = 1, \;\; \sum_i i\,p_i = m_1, \;\; \sum_i i^2 p_i = m_2 .
+\]
+Logistic regression, geometric programming through $\log\sum\exp$, and
+relative entropy objectives are the other standard families.
+
+\textbf{4. Conic duality on it.}
+Dualising the three moment rows reproduces exactly the result derived
+by hand in Problem~1: the optimality conditions force
+$p_i \propto e^{-\nu_1 i - \nu_2 i^2}$, and the dual reduces to two
+variables. Numerically, for $n = 6$ the conic program returns
+$-1.6965357595$ at $(m_1,m_2) = (4,18)$ and $-1.2665057261$ at
+$(4.5,21)$, against $-1.6965357595$ and $-1.2665057255$ from
+Problem~1, with the distributions agreeing to $1.8\times10^{-5}$.
+
+\textbf{5. The measured trade, which is not the obvious one.}
+Problem~1's reduction looks strictly better: two variables against
+$2n$ variables and $n$ cones. It is not, once $n$ grows. Residual below
+is the largest moment violation of the returned distribution.
+
+\begin{center}\footnotesize
+\setlength{\tabcolsep}{7pt}
+\begin{tabular}{@{}rrrrrr@{}}
+\toprule
+$n$ & cone (ms) & 2-var dual (ms) & cone residual
+  & dual residual & rescaled dual\\
+\midrule
+      6 &   4.4 &   6.1 & $3.6\times10^{-9}$  & $1.9\times10^{-7}$
+  & $7.3\times10^{-8}$\\
+     50 &   6.2 &   5.1 & $1.7\times10^{-9}$  & $5.2\times10^{-6}$
+  & $2.5\times10^{-7}$\\
+    500 &  18.3 &   7.3 & $1.2\times10^{-10}$ & $8.5\times10^{-2}$
+  & $2.9\times10^{-6}$\\
+   5000 & 226.2 &   7.6 & $4.1\times10^{-11}$ & $7.0\times10^{1}$
+  & $6.6\times10^{-4}$\\
+  50000 & ---   &  79.9 & ---                 & $1.2\times10^{3}$
+  & $3.4\times10^{-3}$\\
+ 200000 & ---   & 636.6 & ---                 & $5.0\times10^{3}$
+  & $1.8\times10^{-2}$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The conic form holds $10^{-11}$ throughout while the two-variable dual
+degrades and, past $n = 5\times10^{4}$, fails outright --- quasi-Newton
+never leaves $\nu = 0$. The cause is scaling: the constraint functions
+$i$ and $i^2$ differ by a factor $n$, so the dual Hessian conditions
+badly and the gradient at the origin is of order $n^2$. Rescaling to
+$i/n$ and $(i/n)^2$ recovers four to five orders but does not remove
+the trend. The lesson is that the small dual is the right
+\emph{mathematics} and the conic form is the right \emph{arithmetic}:
+the interior-point method's own scaling buys robustness that the
+two-variable reduction has to be given by hand.
+
+\end{document}

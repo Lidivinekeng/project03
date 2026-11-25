@@ -1,0 +1,137 @@
+%=======================================================================
+%  IE 5311-001 (D01) Exploration Problem EP8
+%  One page, single spacing, 10 pt, 1-inch margins, as the sheet requires.
+%  Content past page 1 is not graded, so the page limit is hard.
+%  Sections map onto the three parts asked: the general formulation,
+%  two reformulations, and their relationship / merits / limits.
+%
+%  IF IT SPILLS ONTO A SECOND PAGE, delete in this order until it fits.
+%    1. the last sentence of section 5 (from "For nonlinear")
+%    2. the K = 12 row of the table in section 4
+%    3. the parenthesis in section 1 beginning "(Raman and Grossmann"
+%  Do not cut section 3 or section 4: the relationship and the measured
+%  gap are what the question asks for.
+%=======================================================================
+\documentclass[10pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+
+\DeclareMathOperator{\conv}{conv}
+\newcommand{\T}{^{\!\top}}
+
+\pagestyle{empty}
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+{\large\bfseries EP8.\quad Disjunctive programming and its two reformulations}\\[1pt]
+{\small Lidivine Kengne \quad\textbar\quad IE 5311-001 (D01), Homework 6}
+\vspace{0.3em}
+
+\textbf{1. The general formulation.}
+A disjunctive program optimises over a \emph{union} of polyhedra rather
+than one. With $K$ disjuncts,
+\[
+  \min_{x}\; c\T x
+  \qquad\text{s.t.}\qquad
+  x \in \bigcup_{k \in K} P_k, \quad P_k = \{x : A_k x \le b_k\},
+  \qquad x \in X \subseteq \mathbb{R}^n,
+\]
+$X$ a bounding box. The union is the whole difficulty: each $P_k$ is
+convex, their union is not. Every complementarity condition is a
+two-term instance, since $ab = 0$ with $a,b \ge 0$ is
+$\{a = 0\} \cup \{b = 0\}$ --- which is why Problem~2 of this homework
+is a disjunctive program in disguise.
+
+\textbf{2. The two reformulations.}
+Both introduce binaries $z_k$ with $\sum_k z_k = 1$ and differ in how
+they switch the constraints off.
+
+\emph{Big-M.} Keep one copy of $x$ and relax each inactive block by a
+constant: $A_k x \le b_k + M_k(1 - z_k)$. The disjunct is enforced when
+$z_k = 1$ and vacuous when $z_k = 0$, provided $M_k$ is large enough
+that $A_k x \le b_k + M_k$ holds throughout $X$.
+
+\emph{Hull, or disaggregated, reformulation.} Give each disjunct its
+own copy of the variable and split $x$ among them:
+\[
+  x = \sum_{k \in K} x^k, \qquad
+  A_k x^k \le b_k z_k, \qquad
+  \sum_{k \in K} z_k = 1, \qquad z \ge 0 .
+\]
+A disjunct with $z_k = 0$ forces $x^k = 0$.
+
+\textbf{3. The relationship.}
+Balas' theorem: the projection of the hull relaxation onto $x$ is
+exactly $\conv\bigl(\bigcup_k P_k\bigr)$, the tightest convex
+relaxation there is. The big-M relaxation always contains it, so its
+bound is never better, and how much worse depends entirely on how close
+each $M_k$ is to the smallest valid value.
+
+There is an instructive exception. For the two-term complementarity
+with $a \le U_a$, $b \le U_b$, eliminating $z$ from $a \le U_a z$,
+$b \le U_b(1-z)$, $z \in [0,1]$ leaves $a/U_a + b/U_b \le 1$: the
+triangle on $(0,0),(0,U_b),(U_a,0)$, which \emph{is} the hull of the
+two segments. With tight bounds big-M already is the hull formulation.
+Inflating $M$ destroys that:
+
+\begin{center}\footnotesize
+\setlength{\tabcolsep}{8pt}
+\begin{tabular}{@{}rrrr@{}}
+\toprule
+$M_a, M_b$ relative to the tight bound & relaxation area
+  & $/\,$hull & $/\,$variable box\\
+\midrule
+$1.00\times$ & 16.00 & $1.00\times$ & 0.50\\
+$1.25\times$ & 23.00 & $1.44\times$ & 0.72\\
+$2.00\times$ & 32.00 & $2.00\times$ & 1.00\\[-1pt]
+\bottomrule
+\end{tabular}
+\end{center}
+
+At twice the tight bound the relaxation is the whole variable box: the
+complementarity has stopped constraining it. That is the precise reason
+Problem~2 Part~3 had to \emph{derive} $M^{\mathrm{dual}} = 8$ rather
+than pick a round number.
+
+\textbf{4. Where they genuinely differ.}
+Minimising $c\T x$ over a union of $K$ disjoint boxes in
+$\mathbb{R}^2$, presolve and cuts off so the nodes mean something
+(\texttt{ep8\_disjunctive.py}):
+
+\begin{center}\footnotesize
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{@{}rrrrrrr@{}}
+\toprule
+$K$ & optimum & big-M LP & hull LP & big-M gap
+  & big-M nodes & hull nodes\\
+\midrule
+ 3 & 10.2208 & 8.0908 & 10.2208 & 2.1300 &  3 & 1\\
+12 &  3.4317 & 2.1526 &  3.4317 & 1.2792 & 15 & 1\\
+20 &  3.3480 & 0.4090 &  3.3480 & 2.9390 & 22 & 1\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The hull relaxation returns the integer optimum in every case and
+closes at the root; big-M leaves a gap that branching must close, and
+its node count grows with $K$ while the hull's does not.
+
+\textbf{5. Advantages and limitations.}
+Big-M is compact --- $|K|$ binaries, no new continuous variables ---
+and portable to any MILP solver. Against that it needs valid bounds,
+which can be costly or impossible to compute tightly: too large is
+valid but useless, too small silently removes feasible points, and
+that is the dangerous failure because the model still solves and still
+returns a number. The hull needs no bounds and gives the best possible
+relaxation, but pays $n|K|$ extra continuous variables, so it wins
+only when the tighter bound removes more nodes than the larger LP
+costs. For nonlinear disjuncts it also needs the perspective function
+$z f(x/z)$, nonsmooth at $z = 0$.
+
+\end{document}
