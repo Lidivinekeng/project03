@@ -68,19 +68,21 @@ fleet has only $KQ - D = 24{,}000 - 22{,}500 = 1{,}500$ units of total
 slack, about $6.25\%$ of capacity.
 
 \emph{Does meeting the bound guarantee feasibility?} No. The bound is
-necessary, not sufficient. It treats demand as perfectly divisible,
-whereas a customer's demand cannot be split, so the real question is
-whether the $21$ indivisible demands can be packed into $4$ bins of
-size $Q$ --- a bin-packing feasibility problem, itself NP-complete.
-Aggregate capacity can be ample while no packing exists: three
-customers of demand $2{,}100$ each and a fleet of $K=1$, $Q=6{,}000$
-satisfies $KQ \ge D$ with $D = 6{,}300 > Q$ failing already, and more
-pointedly $d = (4{,}000,\,4{,}000)$ with $K = 2$, $Q = 6{,}000$ gives
-$KQ = 12{,}000 \ge 8{,}000 = D$ yet forces one vehicle per customer,
-which is feasible, while $d = (4{,}000,\,4{,}000,\,4{,}000)$ with
-$K = 2$ has $KQ = 12{,}000 = D$ and no packing at all. For this
-instance a feasible packing does exist, but that is established by
-exhibiting a solution, not by the counting bound.
+necessary, not sufficient, because it uses only \emph{aggregate}
+capacity and so treats demand as perfectly divisible. A customer's
+demand cannot be split, so the real question is whether the $21$
+indivisible demands admit a packing into $4$ bins of size $Q$, which
+is a bin-packing feasibility problem and is itself NP-complete.
+
+The two can come apart. Take $K = 2$, $Q = 6{,}000$ and three
+customers of demand $4{,}000$ each. Then $D = 12{,}000$ and
+$KQ = 12{,}000 \ge D$, so the bound is met, with equality. Yet no
+vehicle can serve two of these customers, since $8{,}000 > Q$, so two
+vehicles serve at most two customers between them and the third cannot
+be served at all: the instance is infeasible while passing the test.
+For E-n22-k4 a feasible packing does exist, but that is established by
+exhibiting a solution --- Section~3 does so --- not by the counting
+bound.
 
 \paragraph{(c) Data check.}
 With CVRPLIB numbering, node $1$ is the depot at $(145,215)$, node $2$
@@ -304,6 +306,130 @@ satisfies $\bar{c}_r \ge 0$. Because the pricing problem is solved
 of the full master can improve the current basis, so the restricted
 master optimum is the optimum of the complete master LP --- obtained
 without ever enumerating $\mathcal{R}$.
+
+\section{Computational Implementation and Comparison}
+
+Both methods solve the same instance with $K = 4$ and $Q = 6000$.
+Timings are reported in Section~3.4 from a single sequential run, so
+that no two solvers compete for the machine.
+
+\subsection{Method I: direct MIP}
+
+\texttt{p3\_direct\_mip.py} builds \eqref{eq:obj}--\eqref{eq:bin} with
+$|A| \cdot K = 1{,}848$ binaries and $180$ explicit rows. The subtour
+family \eqref{eq:sec} is exponential and is therefore not written out:
+at every integer incumbent a callback takes the arcs each vehicle uses,
+finds the connected components that avoid the depot, and adds the
+violated inequality for each as a lazy constraint. Over the whole solve
+$240$ such cuts were generated. Vehicles are interchangeable, so a
+symmetry-breaking rule requiring the lowest-indexed customer of
+vehicle $k$ to increase with $k$ is also imposed.
+
+\paragraph{(a) Outcome.} The solver returns status \textsc{optimal}
+with objective $375$ and best bound $375.0000$, an optimality gap of
+$0.0000\%$, after $298{,}263$ branch-and-bound nodes. The instance file
+records the published optimum of E-n22-k4 as $375$, so the formulation
+and the data reading agree with an external reference.
+
+\paragraph{(b) The four routes.}
+
+\begin{center}
+\begin{tabular}{@{}rrrl@{}}
+\toprule
+vehicle & load & cost & visiting sequence\\
+\midrule
+1 & 5600 & 113 & $1 \to 7 \to 2 \to 3 \to 6 \to 8 \to 10 \to 1$\\
+2 & 5400 & 102 & $1 \to 14 \to 12 \to 5 \to 4 \to 9 \to 11 \to 1$\\
+3 & 5900 &  83 & $1 \to 18 \to 21 \to 19 \to 16 \to 13 \to 1$\\
+4 & 5600 &  77 & $1 \to 17 \to 20 \to 22 \to 15 \to 1$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Summing the four route costs reproduces $113 + 102 + 83 + 77 = 375$.
+The union of the four customer sets is $\{2,\dots,22\}$ with no
+repetition, so every customer is visited exactly once; the loads
+$5600, 5400, 5900, 5600$ all satisfy $\le Q = 6000$, the largest using
+$98.3\%$ of a vehicle. Both checks are recomputed from the returned
+arcs by the script rather than read off the solver.
+
+\subsection{Method II: column generation}
+
+\paragraph{(c) Construction of the initial RMP.}
+The restricted master must be feasible before any dual is meaningful,
+which needs $K$ routes partitioning $C$. We pack the demands into four
+bins by first-fit-decreasing and then order each bin by an exact
+Held--Karp traversal, giving the four routes
+$\{12,15,19,20,22\}$, $\{3,6,11,13,18\}$, $\{4,10,14,16,17\}$ and
+$\{2,5,7,8,9,21\}$ at a total cost of $616$. This is feasible by
+construction, so no artificial variables and no Phase~I are needed.
+
+The RMP is the LP \eqref{eq:spobj}--\eqref{eq:spfleet} over the current
+columns, solved by Gurobi. Its duals are $\pi_i$ on the covering row of
+customer $i$ and $\sigma$ on the fleet row; Gurobi returns them
+directly from the optimal basis. The pricing subproblem of
+Section~2.4 is then built as a single-vehicle MIP with the same lazy
+subtour separation as Method I, and any route it returns with
+$\bar{c}_r < 0$ is appended to the master. The column generation loop
+itself --- initial columns, dual extraction, pricing, column
+acceptance, termination --- is implemented in
+\texttt{p3\_colgen.py}; the solver is used only to solve the two
+optimisation problems inside it.
+
+\paragraph{(d) Results.}
+
+\begin{center}
+\begin{tabular}{@{}lr@{}}
+\toprule
+quantity & value\\
+\midrule
+column generation iterations & 56\\
+routes generated & 116 \;(112 beyond the 4 initial)\\
+final LP objective $z^{\mathrm{DW}}_{\mathrm{LP}}$ & 373.875000\\
+minimum reduced cost in the final pricing iteration & $0.000000$\\
+feasible routes in the full master & 68{,}292\\
+fraction of the column set ever priced in & $0.17\%$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The RMP value is flat at $616$ for the first $15$ iterations --- the
+early columns change the basis without yet beating the heuristic ---
+then falls steadily to $373.875$.
+
+\emph{Has optimality of the full master LP been established?} Yes. The
+pricing problem is solved exactly over all of $\mathcal{R}$, so a
+minimum reduced cost of $0$ means no route in the complete master can
+enter the basis profitably, and the restricted optimum is therefore
+optimal for the full master LP. Because this instance is small enough
+to settle independently, \texttt{verify\_cg.py} checks the claim
+without using the pricer: it enumerates all $68{,}292$ feasible routes
+and evaluates $\bar{c}_r$ at the final duals, finding a minimum of
+$0.0000000000$ and no route below $-10^{-9}$, and it re-solves the full
+master directly with a different solver (HiGHS), obtaining
+$373.875000$ and agreeing with column generation to
+$1.1 \times 10^{-13}$.
+
+\paragraph{(e) An integer solution from the generated routes.}
+The final LP is fractional: $12$ of the $116$ weights are strictly
+between $0$ and $1$, the largest being $\lambda = 0.875$ on
+$\{13,16,18,19,21\}$. A fractional $\lambda$ is not a routing, so an
+integer solution must be constructed. We take route~(ii) of the two
+options offered, an integer restricted master: impose
+$\lambda_r \in \{0,1\}$ over the generated columns only and solve
+\eqref{eq:spobj}--\eqref{eq:spint} on that pool.
+
+The outcome is worth reporting plainly, because it is the point of the
+exercise. Over the $116$ columns that column generation produced, the
+integer restricted master returns $\mathbf{616}$ --- the initial
+heuristic --- not $375$. The reason is specific and checkable: three of
+the four optimal routes, $\{4,5,9,11,12,14\}$, $\{13,16,18,19,21\}$ and
+$\{15,17,20,22\}$, are in the pool, but $\{2,3,6,7,8,10\}$ is not, and
+without it those three cannot be completed into a partition of $C$.
+Column generation terminates the moment the \emph{LP} is certified and
+has no reason to produce the columns an \emph{integer} solution needs.
+This is exactly why solving the master LP is not the same as solving
+the CVRP, and why branch-and-price branches rather than stopping here.
 
 \section{LP Relaxation and Reformulation Strength}
 
