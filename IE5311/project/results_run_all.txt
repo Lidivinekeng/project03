@@ -1,0 +1,81 @@
+
+==========================================================================
+PROBLEM 1  data and preliminary analysis
+==========================================================================
+instance E-n22-k4, n = 22, Q = 6000, depot = 1, customers = 21
+(b) D = 22500, ceil(D/Q) = 4, K*Q - D = 1500
+(c) c_1,2 = 49   (exact 49.365980)
+(c) c_1,3 = 48   (exact 48.083261)
+(c) c_2,3 = 9   (exact 8.544004)
+
+==========================================================================
+PROBLEM 3  Method I, direct MIP
+==========================================================================
+variables 1848, rows 180, lazy cuts 240
+status OPTIMAL, objective 375, bound 375.0000, gap 0.000000%
+nodes 298263, TIME 112.14 s
+   veh 1: load  5600 cost  113  1 -> 7 -> 2 -> 3 -> 6 -> 8 -> 10 -> 1
+   veh 2: load  5400 cost  102  1 -> 14 -> 12 -> 5 -> 4 -> 9 -> 11 -> 1
+   veh 3: load  5900 cost   83  1 -> 18 -> 21 -> 19 -> 16 -> 13 -> 1
+   veh 4: load  5600 cost   77  1 -> 17 -> 20 -> 22 -> 15 -> 1
+   sum of route costs 375, all customers once True, loads<=Q True
+
+==========================================================================
+PROBLEM 3  Method II, column generation
+==========================================================================
+pricing pool = 10 solutions per iteration
+initial RMP cost 616 from [(12, 15, 19, 20, 22), (3, 6, 11, 13, 18), (4, 10, 14, 16, 17), (2, 5, 7, 8, 9, 21)]
+iterations 44, routes generated 168, LP 373.875000, min reduced cost 0.000000, TIME 32.77 s
+fractional weights 12, largest weight 0.8750
+feasible routes in the full master 68292, priced in 0.2460%
+
+==========================================================================
+PROBLEM 3(e)  integer restricted master over generated routes
+==========================================================================
+objective 375, TIME 0.007 s
+   load  5900 cost   83  (13, 16, 18, 19, 21)
+   load  5600 cost   77  (15, 17, 20, 22)
+   load  5600 cost  113  (2, 3, 6, 7, 8, 10)
+   load  5400 cost  102  (4, 5, 9, 11, 12, 14)
+   routes                 True
+   all customers once     True
+   capacity               True
+   cost consistent        True
+   optimal routes present in the pool: 4/4
+      (2, 3, 6, 7, 8, 10): in pool
+      (4, 5, 9, 11, 12, 14): in pool
+      (13, 16, 18, 19, 21): in pool
+      (15, 17, 20, 22): in pool
+
+==========================================================================
+PROBLEM 3(e)  sensitivity of the integer solution to the pool
+==========================================================================
+ pool  iters  columns          LP  integer  opt in pool
+    4     56      116  373.875000      616          3/4
+   10     44      168  373.875000      375          4/4
+   25     26      173  373.875000      391          3/4
+
+==========================================================================
+PROBLEM 4  LP relaxation strength
+==========================================================================
+LP without subtour constraints 262.000000
+z_LP^orig with separation      318.000000  (9 rounds, 206 cuts)
+z_LP^DW                        373.875000
+z*                             375
+chain holds: True
+DW closes 98.0% of the remaining gap
+
+==========================================================================
+PROBLEM 5  capacity sensitivity
+==========================================================================
+Q = 6000: z* = 375, loads [5400, 5600, 5600, 5900]
+Q = 7500: z* = 368, loads [3400, 4800, 6800, 7500], gap 0.0000%, TIME 142.01 s
+   veh 1: load  7500 cost  116  1 -> 11 -> 7 -> 2 -> 3 -> 6 -> 8 -> 10 -> 13 -> 1
+   veh 2: load  4800 cost  100  1 -> 14 -> 12 -> 5 -> 4 -> 9 -> 1
+   veh 3: load  3400 cost   46  1 -> 15 -> 18 -> 17 -> 1
+   veh 4: load  6800 cost  106  1 -> 16 -> 19 -> 21 -> 22 -> 20 -> 1
+   change -7 (-1.87%), routes in common 0
+
+==========================================================================
+total wall clock 379.3 s
+==========================================================================
