@@ -383,19 +383,15 @@ optimisation problems inside it.
 \toprule
 quantity & value\\
 \midrule
-column generation iterations & 56\\
-routes generated & 116 \;(112 beyond the 4 initial)\\
+column generation iterations & 44\\
+routes generated & 168 \;(164 beyond the 4 initial)\\
 final LP objective $z^{\mathrm{DW}}_{\mathrm{LP}}$ & 373.875000\\
 minimum reduced cost in the final pricing iteration & $0.000000$\\
 feasible routes in the full master & 68{,}292\\
-fraction of the column set ever priced in & $0.17\%$\\
+fraction of the column set ever priced in & $0.246\%$\\
 \bottomrule
 \end{tabular}
 \end{center}
-
-The RMP value is flat at $616$ for the first $15$ iterations --- the
-early columns change the basis without yet beating the heuristic ---
-then falls steadily to $373.875$.
 
 \emph{Has optimality of the full master LP been established?} Yes. The
 pricing problem is solved exactly over all of $\mathcal{R}$, so a
@@ -411,25 +407,143 @@ $373.875000$ and agreeing with column generation to
 $1.1 \times 10^{-13}$.
 
 \paragraph{(e) An integer solution from the generated routes.}
-The final LP is fractional: $12$ of the $116$ weights are strictly
+The final LP is fractional: $12$ of the $168$ weights lie strictly
 between $0$ and $1$, the largest being $\lambda = 0.875$ on
 $\{13,16,18,19,21\}$. A fractional $\lambda$ is not a routing, so an
-integer solution must be constructed. We take route~(ii) of the two
-options offered, an integer restricted master: impose
-$\lambda_r \in \{0,1\}$ over the generated columns only and solve
-\eqref{eq:spobj}--\eqref{eq:spint} on that pool.
+integer solution must be constructed. We take option (ii), an integer
+restricted master: impose $\lambda_r \in \{0,1\}$ over the generated
+columns only and solve \eqref{eq:spobj}--\eqref{eq:spint} on that
+pool. It returns $375$ on the four routes
+$\{13,16,18,19,21\}$, $\{15,17,20,22\}$, $\{2,3,6,7,8,10\}$ and
+$\{4,5,9,11,12,14\}$, and the script re-checks from the route members
+that they partition $C$, that each load is within $Q$, and that each
+stated cost equals the cost of the optimal traversal of its member
+set. This matches the direct MIP optimum of Section~3.1.
 
-The outcome is worth reporting plainly, because it is the point of the
-exercise. Over the $116$ columns that column generation produced, the
-integer restricted master returns $\mathbf{616}$ --- the initial
-heuristic --- not $375$. The reason is specific and checkable: three of
-the four optimal routes, $\{4,5,9,11,12,14\}$, $\{13,16,18,19,21\}$ and
-$\{15,17,20,22\}$, are in the pool, but $\{2,3,6,7,8,10\}$ is not, and
-without it those three cannot be completed into a partition of $C$.
-Column generation terminates the moment the \emph{LP} is certified and
-has no reason to produce the columns an \emph{integer} solution needs.
-This is exactly why solving the master LP is not the same as solving
-the CVRP, and why branch-and-price branches rather than stopping here.
+\paragraph{That outcome is not robust, and the reason matters.}
+Reaching $375$ depended on a choice that has nothing to do with the
+LP: how many solutions the pricer is asked for at each call. Taking
+only the best one, the natural implementation, leaves a pool from
+which no good integer solution can be built at all.
+
+\begin{center}\small
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{@{}rrrrrc@{}}
+\toprule
+solutions per & & & & integer & optimal routes\\
+pricing call & iterations & columns
+  & $z^{\mathrm{DW}}_{\mathrm{LP}}$ & master & in pool\\
+\midrule
+ 4 & 56 & 116 & 373.875000 & 616 & 3 of 4\\
+10 & 44 & 168 & 373.875000 & 375 & 4 of 4\\
+25 & 26 & 173 & 373.875000 & 391 & 3 of 4\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Two things stand out. The certified LP value is $373.875000$ in every
+row, as it must be: the bound is a property of the full master and
+cannot depend on how the columns were found. The integer value,
+however, is \emph{not monotone} in the pool size --- $25$ solutions
+per call is worse than $10$. A larger pool converges in fewer
+iterations and therefore collects a \emph{different} column set rather
+than a larger one, and the integer value tracks one thing only,
+whether the four optimal routes land in it. At $4$ solutions per call
+three of them do and $\{2,3,6,7,8,10\}$ does not, so those three
+cannot be completed into a partition of $C$ and the integer master
+falls back on the initial heuristic at $616$.
+
+The general point is not about tuning. Column generation terminates
+the moment the \emph{LP} is certified and has no reason to produce the
+columns an \emph{integer} solution needs; which ones it happens to
+leave behind is incidental. That is why solving the master LP is not
+the same as solving the CVRP, and why branch-and-price branches on the
+master rather than stopping here.
+
+\subsection{(f) Comparison}
+
+\begin{center}
+\begin{tabular}{@{}lr@{}}
+\toprule
+quantity & value\\
+\midrule
+Method I, direct MIP: optimal objective & 375\\
+Method I: best bound at termination & 375.0000\\
+Method I: optimality gap & $0.0000\%$\\
+Method II: certified LP bound
+  $z^{\mathrm{DW}}_{\mathrm{LP}}$ & 373.875000\\
+Method II: integer solution over generated routes & 375\\
+implied bracket on $z^\star$, costs being integral
+  & $[374,\,375]$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Solution quality.} Both methods reach the same routing, of
+cost $375$, but they know different things about it. Method I
+\emph{proves} optimality: its bound meets its incumbent. Method II
+produces the same solution without proving it. Its bound
+$373.875$ is a valid lower bound on $z^\star$, and because every
+$c_{ij}$ is an integer every feasible cost is an integer, so
+$z^\star \ge \lceil 373.875 \rceil = 374$; with the feasible solution
+of cost $375$ in hand this brackets the optimum to $[374,375]$. Column
+generation therefore comes within one unit of a proof without
+branching once, which is the practical content of the stronger
+relaxation measured in Section~4 --- but closing that last unit still
+requires branching on top of the master, which is the step this
+project stops short of.
+
+\paragraph{Computational performance.} The raw times favour neither
+method decisively at this size, and that is itself the point: a
+$21$-customer instance is small enough for a direct MIP to be viable,
+which is exactly the regime where decomposition has least to offer.
+What the numbers show is \emph{why} that changes. Method I explores
+$298{,}263$ nodes on $1{,}848$ binaries, and it needs an explicit
+symmetry-breaking rule because the $K! = 24$ relabellings of identical
+vehicles would otherwise be re-explored; both the node count and the
+binary count grow sharply with $n$ and $K$. Method II prices in only
+$116$--$173$ of the $68{,}292$ feasible routes, between $0.17\%$ and
+$0.25\%$ of the column set, and carries no vehicle symmetry at all
+because the route-based model has no vehicle index. Its cost per
+iteration is dominated by the pricing problem, which is an
+NP-hard elementary shortest path problem but one solved on a single
+vehicle rather than on the full fleet. The scaling argument favours
+decomposition well before the formulations themselves become
+unmanageable: Method I would exceed this licence's $2{,}000$-variable
+limit at $n = 23$ with $K = 4$.
+
+\subsection{Timings}
+
+All figures below come from one sequential execution of
+\texttt{run\_all.py}, which regenerates every number quoted in this
+report. Nothing was run concurrently, so no two solvers competed for
+the machine.
+
+\begin{center}
+\begin{tabular}{@{}lr@{}}
+\toprule
+stage & time (s)\\
+\midrule
+Method I: direct MIP solved to proven optimality & 112.14\\
+Method II: column generation to a certified LP bound & 32.77\\
+Method II: integer restricted master over the generated pool & 0.01\\
+\midrule
+Method II total & 32.78\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Method II reaches the same routing in roughly a third of the time, but
+the comparison is not like for like: Method I returns a \emph{proof},
+Method II the same solution with a bound one unit short of proving it.
+Method I's $112$ seconds go almost entirely on that proof, a solution
+of cost $375$ being found long before the bound closes.
+
+Two auxiliary computations reported elsewhere belong to neither
+method: enumerating all $68{,}292$ routes takes $0.6$~s and solving
+the resulting complete master LP with HiGHS $0.45$~s. Both exist only
+to check the column generation, and neither would be available at a
+size where decomposition was actually needed.
 
 \section{LP Relaxation and Reformulation Strength}
 
